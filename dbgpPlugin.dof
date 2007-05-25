@@ -88,7 +88,9 @@ Comments=
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+[HistoryLists\hlSearchPath]
+Count=1
+Item0=$(DELPHI)\Lib\Debug
 [HistoryLists\hlOutputDirectorry]
-Count=2
+Count=1
 Item0=C:\Program Files\Notepad++\plugins
-Item1=d:\x

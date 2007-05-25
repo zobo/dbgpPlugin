@@ -5,10 +5,18 @@ uses
   Classes,
   Types,
   Windows,
+  Dialogs,
   Messages,
   nppplugin in 'nppplugin.pas',
   dbgpnppplugin in 'dbgpnppplugin.pas',
-  scisupport in 'SciSupport.pas';
+  scisupport in 'SciSupport.pas',
+  NppDockingForm in 'NppDockingForm.pas',
+  MainForm in 'MainForm.pas' {Form1},
+  DbgpWinSocket in 'DbgpWinSocket.pas',
+  ConfigForm in 'ConfigForm.pas' {ConfigForm1},
+  DebugStackForm in 'DebugStackForm.pas' {DebugStackForm1},
+  DebugVarForm in 'DebugVarForm.pas' {DebugVarForm1},
+  DebugEvalForm in 'DebugEvalForm.pas' {DebugEvalForm1};
 
 {$R *.res}
 
@@ -19,13 +27,12 @@ begin
   begin
     // create the main object
     Npp := TDbgpNppPlugin.Create;
-
   end;
   DLL_PROCESS_DETACH:
   begin
   end;
-  DLL_THREAD_ATTACH: MessageBeep(0);
-  DLL_THREAD_DETACH: MessageBeep(0);
+  //DLL_THREAD_ATTACH: MessageBeep(0);
+  //DLL_THREAD_DETACH: MessageBeep(0);
   end;
 end;
 
@@ -44,9 +51,10 @@ begin
   Result := Npp.GetFuncsArray(nFuncs);
 end;
 
-procedure beNotified(x: Pointer); cdecl; export;
+
+procedure beNotified(sn: PSCNotification); cdecl; export;
 begin
-  Npp.BeNotified(x);
+  Npp.BeNotified(sn);
 end;
 
 function messageProc(msg: Integer; wParam: WPARAM; lParam: LPARAM): LRESULT; cdecl; export;

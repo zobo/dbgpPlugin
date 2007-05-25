@@ -38,6 +38,8 @@ type
     foldLevelPrev	    : Integer;		// SCN_MODIFIED
     margin		    : Integer;		// SCN_MARGINCLICK
     listType		    : Integer;		// SCN_USERLISTSELECTION
+    x                       : Integer;          // SCN_DWELLSTART, SCN_DWELLEND
+    y                       : Integer;          // SCN_DWELLSTART, SCN_DWELLEND
   end;
   TCharacterRange = Record
     cpMin : Longint;
