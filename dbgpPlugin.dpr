@@ -1,5 +1,9 @@
 library dbgpPlugin;
 
+
+
+
+
 uses
   SysUtils,
   Classes,
@@ -16,7 +20,10 @@ uses
   ConfigForm in 'ConfigForm.pas' {ConfigForm1},
   DebugStackForm in 'DebugStackForm.pas' {DebugStackForm1},
   DebugVarForm in 'DebugVarForm.pas' {DebugVarForm1},
-  DebugEvalForm in 'DebugEvalForm.pas' {DebugEvalForm1};
+  DebugEvalForm in 'DebugEvalForm.pas' {DebugEvalForm1},
+  Base64 in 'Base64.pas',
+  DebugInspectorForm in 'DebugInspectorForm.pas' {DebugInspectorForm1},
+  DebugRawForm in 'DebugRawForm.pas' {DebugRawForm1};
 
 {$R *.res}
 

@@ -58,7 +58,10 @@ begin
 
   if (msg.NMHdr.code = DMN_CLOSE) then
   begin
+    //MessageBeep(0);
     //ShowMessage('Close');
+    //self.DoClose();
+    //self.Close;
   end;
 
  //#define DMN_FIRST 1050

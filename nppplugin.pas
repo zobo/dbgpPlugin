@@ -229,6 +229,7 @@ type
     Checked: Boolean;
     ShortcutKey: PShortcutKey;
   end;
+  PFuncItem = ^_TFuncItem;
 
   TToolbarData = record
     ClientHandle: HWND;
@@ -244,11 +245,12 @@ type
 
   TNppPlugin = class(TObject)
     private
-      FFuncArray: array[1..MaxFuncs] of _TFuncItem;
-      FFuncCount: Integer;
     protected
       PluginName: String;
-      procedure AddFunc(Func: TFuncItem);
+      FuncArray: array of _TFuncItem;
+      //FuncCount: Integer;
+      //procedure AddFunc(Func: TFuncItem);
+      //function GetFunc(i: Integer): PFuncItem;
     public
       NppData: TNppData;
       constructor Create;
@@ -278,7 +280,7 @@ implementation
 uses
   NppDockingForm;
 { TNppPlugin }
-
+{
 procedure TNppPlugin.AddFunc(Func: TFuncItem);
 var sk: PShortcutKey;
 begin
@@ -306,7 +308,7 @@ begin
   self.FFuncArray[self.FFuncCount].ShortcutKey := sk; // wtf??
 
 end;
-
+}
 procedure TNppPlugin.BeNotified(sn: PSCNotification);
 begin
   // @todo
@@ -315,7 +317,7 @@ end;
 constructor TNppPlugin.Create;
 begin
   inherited;
-  self.FFuncCount := 0;
+  //self.FuncCount := 0;
 end;
 
 destructor TNppPlugin.Destroy;
@@ -323,11 +325,11 @@ var i: Integer;
 begin
   // unregister dialogs?
   // dispose FuncsArray?
-  for i:=1 to self.FFuncCount do
+  for i:=0 to Length(self.FuncArray)-1 do
   begin
-    if (self.FFuncArray[i].ShortcutKey <> nil) then
+    if (self.FuncArray[i].ShortcutKey <> nil) then
     begin
-      Dispose(self.FFuncArray[i].ShortcutKey);
+      Dispose(self.FuncArray[i].ShortcutKey);
     end;
   end;
 
@@ -360,11 +362,16 @@ begin
   Line := SendMessage(self.NppData.ScintillaMainHandle, SciSupport.SCI_LINEFROMPOSITION, r, 0);
 
 end;
+{
+function TNppPlugin.GetFunc(i: Integer): PFuncItem;
+begin
 
+end;
+}
 function TNppPlugin.GetFuncsArray(var FuncsCount: Integer): Pointer;
 begin
-  FuncsCount := self.FFuncCount;
-  Result := @self.FFuncArray;
+  FuncsCount := Length(self.FuncArray);
+  Result := self.FuncArray;
 end;
 
 function TNppPlugin.GetName: PChar;

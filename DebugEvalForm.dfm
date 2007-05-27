@@ -1,8 +1,9 @@
 object DebugEvalForm1: TDebugEvalForm1
-  Left = 353
-  Top = 110
+  Left = 339
+  Top = 111
   Width = 341
   Height = 100
+  ActiveControl = ComboBox1
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSizeToolWin
   Caption = 'Eval'

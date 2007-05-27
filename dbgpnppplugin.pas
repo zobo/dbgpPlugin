@@ -8,7 +8,7 @@ interface
 uses
   NppPlugin,
   MainForm, nppdockingform,
-  data_form, ConfigForm, Forms, SciSupport,
+  ConfigForm, Forms, SciSupport,
   Classes, Dialogs, IniFiles, DbgpWinSocket, Messages;
 
 type
@@ -46,13 +46,16 @@ procedure _FuncStepOut; cdecl;
 procedure _FuncRun; cdecl;
 procedure _FuncEval; cdecl;
 
-
 implementation
 
 { TDbgpNppPlugin }
 uses Windows,Graphics,SysUtils;
 
+//var   x:TToolbarIcons;
+
 procedure TDbgpNppPlugin.BeNotified(sn: PSCNotification);
+var
+  x:TToolbarIcons;
 begin
   if (sn^.nmhdr.code = SCN_DWELLSTART) then
   begin
@@ -60,6 +63,15 @@ begin
     //ShowMessage('SCN_DWELLSTART '+IntToStr(sn^.position));
   end;
   //if (sn^.nmhdr.code = SCN_DOUBLECLICK) then ShowMessage('SCN_DOUBLECLICK');
+
+  if (HWND(sn^.nmhdr.hwndFrom) = self.NppData.NppHandle) then
+    if (sn^.nmhdr.code = NPPN_TB_MODIFICATION) then
+    begin
+
+      // test za toolbar
+      x.ToolbarBmp := LoadImage(Hinstance, 'IDB_DBGP_TEST', IMAGE_BITMAP, 0, 0, (LR_DEFAULTSIZE or LR_LOADMAP3DCOLORS));
+      SendMessage(Npp.NppData.NppHandle, WM_ADDTOOLBARICON, self.FuncArray[0].CmdID, LPARAM(@x));
+    end;
 end;
 
 constructor TDbgpNppPlugin.Create;
@@ -67,95 +79,87 @@ var f: TFuncItem;
   //x:TToolbarIcons;
   //tbx:TBitmap;
   //ico:TIcon;
-  sk: TShortcutKey;
+  sk: PShortcutKey;
+  i: Integer;
 begin
   inherited;
   // Setup menu items
+  SetLength(self.FuncArray,10);
 
   // #112 = F1... pojma nimam od kje...
-
   self.PluginName := 'DBGp';
 
-  f.ItemName := 'Debugger';
-  f.Func := _Func1;
-  f.CmdID := 0;
-  f.Checked := false;
-  f.ShortcutKey := nil;
-  self.AddFunc(f);
+  i := 0;
 
-  f.ItemName := 'Step Into';
-  f.Func := _FuncStepInto;
-  f.CmdID := 1;
+  StrCopy(self.FuncArray[i].ItemName, 'Debugger');
+  self.FuncArray[i].Func := _Func1;
+  self.FuncArray[i].ShortcutKey := nil;
+  inc(i);
+
+  StrCopy(self.FuncArray[i].ItemName, '-');
+  self.FuncArray[i].Func := _Func1;
+  self.FuncArray[i].ShortcutKey := nil;
+  inc(i);
+
+  StrCopy(self.FuncArray[i].ItemName, 'Step Into');
+  self.FuncArray[i].Func := _FuncStepInto;
+  New(self.FuncArray[i].ShortcutKey);
+  sk := self.FuncArray[i].ShortcutKey;
   sk.IsCtrl := false; sk.IsAlt := false; sk.IsShift := false;
   sk.Key := #118; // F7
-  f.ShortcutKey := @sk;
-  self.AddFunc(f);
+  inc(i);
 
-  f.ItemName := 'Step Over';
-  f.Func := _FuncStepOver;
-  f.CmdID := 2;
+  StrCopy(self.FuncArray[i].ItemName, 'Step Over');
+  self.FuncArray[i].Func := _FuncStepOver;
+  New(self.FuncArray[i].ShortcutKey);
+  sk := self.FuncArray[i].ShortcutKey;
   sk.IsCtrl := false; sk.IsAlt := false; sk.IsShift := false;
   sk.Key := #119; // F8
-  f.ShortcutKey := @sk;
-  self.AddFunc(f);
+  inc(i);
 
-  f.ItemName := 'Step Out';
-  f.Func := _FuncStepOut;
-  f.CmdID := 3;
+  StrCopy(self.FuncArray[i].ItemName, 'Step Out');
+  self.FuncArray[i].Func := _FuncStepOut;
+  New(self.FuncArray[i].ShortcutKey);
+  sk := self.FuncArray[i].ShortcutKey;
   sk.IsCtrl := false; sk.IsAlt := false; sk.IsShift := true;
   sk.Key := #119; // Shift+F8
-  f.ShortcutKey := @sk;
-  self.AddFunc(f);
+  inc(i);
 
-  f.ItemName := 'Run';
-  f.Func := _FuncRun;
-  f.CmdID := 4;
+  StrCopy(self.FuncArray[i].ItemName, 'Run');
+  self.FuncArray[i].Func := _FuncRun;
+  New(self.FuncArray[i].ShortcutKey);
+  sk := self.FuncArray[i].ShortcutKey;
   sk.IsCtrl := false; sk.IsAlt := false; sk.IsShift := false;
   sk.Key := #120; // F9
-  f.ShortcutKey := @sk;
-  self.AddFunc(f);
+  inc(i);
 
-  f.ItemName := 'Eval';
-  f.Func := _FuncEval;
-  f.CmdID := 5;
+  StrCopy(self.FuncArray[i].ItemName, '-');
+  self.FuncArray[i].Func := _Func1;
+  self.FuncArray[i].ShortcutKey := nil;
+  inc(i);
+
+  StrCopy(self.FuncArray[i].ItemName, 'Eval');
+  self.FuncArray[i].Func := _FuncEval;
+  New(self.FuncArray[i].ShortcutKey);
+  sk := self.FuncArray[i].ShortcutKey;
   sk.IsCtrl := true; sk.IsAlt := false; sk.IsShift := false;
   sk.Key := #118; // Ctrl+F7
-  f.ShortcutKey := @sk;
-  self.AddFunc(f);
+  inc(i);
 
+  // add stack and context items...
 
-  f.ItemName := 'Config';
-  f.Func := _FuncConfig;
-  f.CmdID := 6;
-  f.ShortcutKey := nil;
-  self.AddFunc(f);
+  StrCopy(self.FuncArray[i].ItemName, '-');
+  self.FuncArray[i].Func := _Func1;
+  self.FuncArray[i].ShortcutKey := nil;
+  inc(i);
+
+  StrCopy(self.FuncArray[i].ItemName, 'Config');
+  self.FuncArray[i].Func := _FuncConfig;
+  self.FuncArray[i].ShortcutKey := nil;
+  inc(i);
 
   self.ReadMaps(self.maps);
 
-//  SendMessage(self.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, 500,500);
-
-   // OBUP!!
-  {
-
-
-  // test za toolbar
-  Form2 := TForm2.Create(nil);
-
-
-  tbx := TBitmap.Create;
-  ico := TIcon.Create;
-  Form2.ImageList1.GetBitmap(0, tbx);
-  Form2.ImageList1.GetIcon(0,ico);
-
-  x.ToolbarBmp := tbx.ReleaseHandle;
-  x.ToolbarIcon := 0;
-
-  ShowMessage('bmp: '+IntToStr(x.ToolbarBmp));
-
-  // id = 0
-  SendMessage(Npp.NppData.NppHandle, WM_ADDTOOLBARICON, 0, LPARAM(@x));
-  ShowMessage('ico: '+IntToStr(x.ToolbarIcon));
-  }
 end;
 
 
@@ -174,7 +178,7 @@ begin
     exit;
   end;
   self.MainForm := TNppDockingForm1.Create(self);
-  self.MainForm.DlgId := 0;
+  self.MainForm.DlgId := self.FuncArray[0].CmdID;
   self.MainForm.Show;
   self.RegisterDockingForm(TNppDockingForm(self.MainForm));
 end;
@@ -212,7 +216,7 @@ end;
 procedure TDbgpNppPlugin.FuncConfig;
 begin
   self.ConfigForm := TConfigForm1.Create(self);
-  self.ConfigForm.DlgId := 6;
+  self.ConfigForm.DlgId := self.FuncArray[9].CmdID;
   self.RegisterForm(TForm(self.ConfigForm));
   self.ConfigForm.Show;
 end;
@@ -244,6 +248,7 @@ begin
 end;
 
 procedure TDbgpNppPlugin.MessageProc(var Msg: TMessage);
+var hm: HMENU;
 begin
   inherited;
   if (Msg.Msg = WM_CREATE) then
@@ -251,6 +256,12 @@ begin
   SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINE, 5, SC_MARK_ARROW);
   SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETFORE, 5, $000000);
   SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETBACK, 5, $00ff00);
+
+  // menu test
+  hm := GetMenu(self.NppData.NppHandle);
+  ModifyMenu(hm, self.FuncArray[1].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
+  ModifyMenu(hm, self.FuncArray[6].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
+  ModifyMenu(hm, self.FuncArray[8].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
 
   end;
 end;

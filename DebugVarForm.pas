@@ -5,22 +5,33 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, JvDockTree, JvDockControlForm, JvDockVIDStyle, JvDockVSNetStyle,
-  JvComponentBase, VirtualTrees, DbgpWinSocket;
+  JvComponentBase, VirtualTrees, DbgpWinSocket, DebugInspectorForm, nppplugin,
+  Menus, StrUtils;
 
 type
+  TRefreshCB = procedure(Sender: TObject) of Object;
   TDebugVarForm1 = class(TForm)
     VirtualStringTree1: TVirtualStringTree;
     JvDockClient1: TJvDockClient;
+    PopupMenu1: TPopupMenu;
+    Refres1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure VirtualStringTree1GetText(Sender: TBaseVirtualTree;
       Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
       var CellText: WideString);
+    procedure VirtualStringTree1DblClick(Sender: TObject);
+    procedure Refres1Click(Sender: TObject);
   private
     { Private declarations }
+    FOnRefresh: TRefreshCB;
     procedure SubSetVars(ParentNode: PVirtualNode; list:TPropertyItems);
   public
     { Public declarations }
+    Npp: TNppPlugin;
+    procedure UseMenu(x: Boolean);
     procedure SetVars(list: TPropertyItems);
+  published
+    property OnRefresh: TRefreshCB read FOnRefresh write FOnRefresh;
   end;
 
 var
@@ -94,10 +105,45 @@ begin
 
   case Column of
   0: {if (Node.Parent<>nil) then CellText := Item^.name else }CellText := Item^.fullname;
-  1: CellText := Item^.data;
+  //1: CellText := Item^.data;
+  1: CellText := AnsiReplaceStr(Item^.data, #10, #13+#10);
   2: CellText := Item^.datatype;
   end;
 
+end;
+
+// show data
+procedure TDebugVarForm1.VirtualStringTree1DblClick(Sender: TObject);
+var
+  Item: PPropertyItem;
+  i: TDebugInspectorForm1;
+begin
+  if (self.VirtualStringTree1.FocusedNode = nil) then exit;
+  Item := PPropertyItem(self.VirtualStringTree1.GetNodeData(self.VirtualStringTree1.FocusedNode));
+  if (Item^.datatype <> 'string') then exit;
+  i := TDebugInspectorForm1.Create(nil);
+  i.Show;
+  i.SetData(Item.data);
+  //i.AutoSize := true;
+  //i.AutoSize := false; // wtf
+  self.Npp.RegisterForm(TForm(i));
+
+
+  // register witn npp?
+end;
+
+procedure TDebugVarForm1.UseMenu(x: Boolean);
+begin
+  if (not x) then
+    self.VirtualStringTree1.PopupMenu := nil
+  else
+    self.VirtualStringTree1.PopupMenu := self.PopupMenu1;
+end;
+
+procedure TDebugVarForm1.Refres1Click(Sender: TObject);
+begin
+  if (Assigned(FOnRefresh)) then
+    self.FOnRefresh(self);
 end;
 
 end.

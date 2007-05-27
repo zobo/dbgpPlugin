@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, ScktComp, WinSock, XMLDoc, XMLDOM, XMLIntf,
-  IdCoder3To4, StrUtils, Dialogs, Variants;
+  IdCoder3To4, StrUtils, Dialogs, Variants, Base64;
 
 type
 //  TDbgpWinSocket = class;
@@ -50,7 +50,7 @@ type
 //  TBreak = ();
   TStackList = array of TStackItem;
   TStackCB = procedure(Sender: TDbgpWinSocket; Stack: TStackList) of Object;
-  TBreakCB = procedure(Sender: TDbgpWinSocket{; Break: TBreak}) of Object;
+  TBreakCB = procedure(Sender: TDbgpWinSocket; Stopped: Boolean) of Object;
   TStreamCB = procedure(Sender: TDbgpWinSocket; stream, data:String) of Object;
   TInitCB = procedure(Sender: TDbgpWinSocket; init: TInit) of Object;
   TVarsCB = procedure(Sender: TDbgpWinSocket; context: Integer; list: TPropertyItems) of Object;
@@ -60,6 +60,7 @@ type
     { Private declarations }
     xml: IXMLDocument;
     buffer: String;
+    TransID: Integer;
   protected
     { Protected declarations }
     FOnDbgpStack: TStackCB;
@@ -75,19 +76,22 @@ type
     function ProcessResponse_stack: String;
     function ProcessResponse_eval: String;
     function ProcessResponse_context_get: String;
+    function ProcessResponse_breakpoint_set: String;
     function ProcessResponse: String;
 
     procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems);
   public
     { Public declarations }
-    TransID: Integer;
     maps: TMaps;
-    debugdata: String;
+    debugdata: TStringList;
     stack: TStackList;
+    Transaction_id: Integer;
+    constructor Create(Socket: TSocket; ServerWinSocket: TServerWinSocket);
     function ReadDBGP: String;
     procedure GetFeature(FeatureName: String);
     procedure SetFeature(FeatureName: String; Value: String);
     procedure GetStack;
+    procedure GetContext(Context:integer);
     procedure SetStream(Str: string; Mode: Integer);
     procedure SetBreakpoint(Filename:String; Line:Integer);
 
@@ -95,9 +99,9 @@ type
 
     procedure Resume(runtype: TRun);
     procedure SendEval(data:String);
-    procedure SendCommand(Cmd: String; Args: String; Base64:String); overload;
-    procedure SendCommand(Cmd: String; Args: String); overload;
-    procedure SendCommand(Cmd: String); overload;
+    function SendCommand(Cmd: String; Args: String; Base64:String): Integer; overload;
+    function SendCommand(Cmd: String; Args: String): Integer; overload;
+    function SendCommand(Cmd: String): Integer; overload;
   published
     { Published declarations }
     property OnDbgpStack: TStackCB read FOnDbgpStack write FOnDbgpStack;
@@ -110,78 +114,26 @@ type
 
 implementation
 
-const
-  //Codes64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/';
-  Codes64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-
-function Encode64(S: string): string;
-var
-  i: Integer;
-  a: Integer;
-  x: Integer;
-  b: Integer;
-begin
-  Result := '';
-  a := 0;
-  b := 0;
-  for i := 1 to Length(s) do
-  begin
-    x := Ord(s[i]);
-    b := b * 256 + x;
-    a := a + 8;
-    while a >= 6 do
-    begin
-      a := a - 6;
-      x := b div (1 shl a);
-      b := b mod (1 shl a);
-      Result := Result + Codes64[x + 1];
-    end;
-  end;
-  if a > 0 then
-  begin
-    x := b shl (6 - a);
-    Result := Result + Codes64[x + 1];
-  end;
-end;
-
-function Decode64(S: string): string;
-var
-  i: Integer;
-  a: Integer;
-  x: Integer;
-  b: Integer;
-begin
-  Result := '';
-  a := 0;
-  b := 0;
-  for i := 1 to Length(s) do
-  begin
-    x := Pos(s[i], codes64) - 1;
-    if x >= 0 then
-    begin
-      b := b * 64 + x;
-      a := a + 6;
-      if a >= 8 then
-      begin
-        a := a - 8;
-        x := b shr a;
-        b := b mod (1 shl a);
-        x := x mod 256;
-        Result := Result + chr(x);
-      end;
-    end
-    else
-      Exit;
-  end;
-end;
-
 { TDbgpWinSocket }
 
  // predvidevamo praviln XML
+constructor TDbgpWinSocket.Create(Socket: TSocket;
+  ServerWinSocket: TServerWinSocket);
+begin
+  inherited;
+  self.TransID := 1; // internal counter
+  self.debugdata := TStringList.Create;
+  self.Transaction_id := -1; // return transaction
+end;
+
+procedure TDbgpWinSocket.GetContext(Context: integer);
+begin
+  self.SendCommand('context_get', '-c '+IntToStr(Context)); // todo depth
+end;
+
 procedure TDbgpWinSocket.GetFeature(FeatureName: String);
 begin
   self.SendCommand('feture-get','-n '+FeatureName);
-  inc(self.TransID);
 end;
 
 { Maps a remote filename 'file://..' to a local file 'd:\xxx...' }
@@ -263,7 +215,6 @@ Data(404): <?xml version="1.0" encoding="iso-8859-1"?>
 
 </init>
 }
-  // callback?
   init.filename := self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
   init.language := self.xml.ChildNodes[1].Attributes['language'];
   init.appid := self.xml.ChildNodes[1].Attributes['appid'];
@@ -271,7 +222,7 @@ Data(404): <?xml version="1.0" encoding="iso-8859-1"?>
 
   if (Assigned(self.FOnDbgpInit)) then self.FOnDbgpInit(self, init);
 
-  Result := 'init file: '+self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
+  //Result := 'init file: '+self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
 end;
 
 { splisna funkcija za rekurzivno procesiranje varov}
@@ -279,7 +230,7 @@ procedure TDbgpWinSocket.ProcessProperty(varxml: IXMLNodeList;
   var list: TPropertyItems);
 var
   i: Integer;
-  c: Integer;
+//  c: Integer;
   x: IXMLNode;
 begin
 (*
@@ -307,7 +258,12 @@ Recv(672): <?xml version="1.0" encoding="iso-8859-1"?>
   for i:=0 to varxml.Count-1 do
   begin
     x := varxml[i];
-    Assert((x.NodeName = 'property'),'Property node actually not "property"!!');
+    //Assert((x.NodeName = 'property'),'Property node actually not "property"!!')
+    if (x.NodeName <> 'property') then
+    begin
+      ShowMessage('Property node actually not "property"!!');
+      exit;
+    end;
 
     list[i].name := x.Attributes['name'];
     if (list[i].name = '') then list[i].name := '?';
@@ -340,6 +296,7 @@ Recv(672): <?xml version="1.0" encoding="iso-8859-1"?>
 
 end;
 
+// Predvsem reakcije na status.. break in stop
 function TDbgpWinSocket.ProcessResponse: String;
 begin
   // is response.status=break?
@@ -349,7 +306,7 @@ begin
   if (self.xml.ChildNodes[1].Attributes['status'] = 'break') then
   begin
     if (Assigned(self.FOnDbgpBreak)) then
-      self.FOnDbgpBreak(self)
+      self.FOnDbgpBreak(self, false)
     else
       self.GetStack;
   end
@@ -359,6 +316,9 @@ begin
     if (Assigned(self.FOnDbgpBreak)) then
     begin
       // when finished...
+      // send one last run so we can die?
+    if (Assigned(self.FOnDbgpBreak)) then
+      self.FOnDbgpBreak(self, true);
     end;
   end;
 
@@ -379,30 +339,42 @@ begin
   end;
 end;
 
+function TDbgpWinSocket.ProcessResponse_breakpoint_set: String;
+var
+  id: String;
+begin
+  id := self.xml.ChildNodes[1].Attributes['id'];
+end;
+
 function TDbgpWinSocket.ProcessResponse_context_get: String;
 var
   list: TPropertyItems;
+  context: Integer;
 begin
   //process context
   self.ProcessProperty(self.xml.ChildNodes[1].ChildNodes, list);
+  context := 0;
+  try
+    context := StrToInt(self.xml.ChildNodes[1].Attributes['context']);
+  except
+  end;
   if (Assigned(self.FOnDbgpContext)) then
-    self.FOnDbgpContext(self,0,list);
+    self.FOnDbgpContext(self,context,list);
   //free data
   FreePropertyItems(list);
-  Result := '';
+  //Result := '';
 end;
 
 
 function TDbgpWinSocket.ProcessResponse_eval: String;
 var
-  t, r, data: String;
   list: TPropertyItems;
 begin
   self.ProcessProperty(self.xml.ChildNodes[1].ChildNodes, list);
   if (Assigned(self.FOnDbgpEval)) then
     self.FOnDbgpEval(self,-1,list);
   FreePropertyItems(list);
-  Result := '';
+  //Result := '';
 end;
 
 function TDbgpWinSocket.ProcessResponse_stack: String;
@@ -412,9 +384,7 @@ var
   r: String;
   stack: TStackList;
 begin
-//    res := self.xml.ChildNodes[1].NodeName;
   r := '';
-  Result := '';
   if (not self.xml.ChildNodes[1].HasChildNodes) then exit; // bad?
   x := nil;
   if (self.xml.ChildNodes[1].HasChildNodes) then
@@ -432,11 +402,10 @@ begin
     stack[i-1].stacktype := x.Attributes['type'];
     x:= x.NextSibling;
   end;
-  Result := r;
+  //Result := r;
 
   self.stack := stack;
   if (Assigned(self.FOnDbgpStack)) then self.FOnDbgpStack(self, stack);
-
 end;
 
 function TDbgpWinSocket.ProcessStream: String;
@@ -459,48 +428,42 @@ begin
 
   if (Assigned(self.FOnDbgpStream)) then self.FOnDbgpStream(self, str, data);
 
-  Result := 'Stream('+str+'): '+data;
+  //Result := 'Stream('+str+'): '+data;
 end;
 
+// returnes the read data and does all processing...
 function TDbgpWinSocket.ReadDBGP: String;
 var
  res,s,r,s2:String;
- c:char;
  len:Integer;
 begin
-  r := '';
   s := self.ReceiveText;
-
-  len := Length(s);
-  c := s[len];
-
-  s2 := c;
-  s2 := '';
-
-  if (s[Length(s)] <> #0) then
+  if (s[Length(s)] <> #0) then // message not yet complete... return and wait for better times
   begin
     self.buffer := self.buffer + s;
     exit;
   end;
-
   s := self.buffer + s;
-
 
   len := StrToInt(s);
   if (Length(s)<len) then
   begin
-    // v najvec primerih to pomeni razbit response
-    self.debugdata := 'Error in len: '+IntToStr(Length(s))+'<'+IntToStr(len);
+    // Should not happen.. something is wronf with the message
+    self.debugdata.Add('Error in len: '+IntToStr(Length(s))+'<'+IntToStr(len)+': '+s);
     exit;
   end;
+
   s2 := Copy(s, StrLen(PChar(s))+2, len);
-  if (Length(s2) < 200) then self.debugdata := 'Recv('+IntToStr(len)+'): '+s2;
+
+  // for raw log
+  self.debugdata.Add('Recv: '+s2);
+
+  self.Transaction_id := -1;
 
   self.xml := TXMLDocument.Create(nil);
   self.xml.Options := [];
   self.xml.XML.Add(s2);
   self.xml.Active := true;
-
 
   res := self.xml.ChildNodes[1].NodeName;
   if (res = 'init') then
@@ -509,12 +472,19 @@ begin
   end
   else if (res = 'response') then
   begin
+    s := self.xml.ChildNodes[1].Attributes['transaction_id'];
+    try
+      self.Transaction_id := StrToInt(s);
+    except
+    end;
     if (self.xml.ChildNodes[1].Attributes['command'] = 'stack_get') then
     r := self.ProcessResponse_stack
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'eval') then
     r := self.ProcessResponse_eval
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'context_get') then
     r := self.ProcessResponse_context_get
+    else if (self.xml.ChildNodes[1].Attributes['command'] = 'breakpoint_set') then
+    r := self.ProcessResponse_breakpoint_set
     else
     r := self.ProcessResponse;
   end
@@ -525,8 +495,6 @@ begin
   begin
     r := self.ProcessStream;
   end;
-
-  Result := r;
 
   self.xml.Active := false;
   self.xml := nil;
@@ -550,29 +518,31 @@ begin
 
 end;
 
-procedure TDbgpWinSocket.SendCommand(Cmd, Args, Base64: String);
+function TDbgpWinSocket.SendCommand(Cmd, Args, Base64: String): Integer;
 var d:String;
 begin
+  Result := -1;
   if (not self.Connected) then exit;
 
   d := Cmd + ' -i '+IntToStr(self.TransID);
+  Result := self.TransID;
   inc(self.TransID);
   if (Args <> '') then
     d := d + ' '+Args;
   if (Base64 <> '') then
     d := d + ' -- '+Base64Encode(Base64);
   self.SendText(d+#0);
-  self.debugdata := 'Send: '+d;
+  self.debugdata.Add('Send: '+d);
 end;
 
-procedure TDbgpWinSocket.SendCommand(Cmd, Args: String);
+function TDbgpWinSocket.SendCommand(Cmd, Args: String): Integer;
 begin
-  self.SendCommand(Cmd, Args, '');
+  Result := self.SendCommand(Cmd, Args, '');
 end;
 
-procedure TDbgpWinSocket.SendCommand(Cmd: String);
+function TDbgpWinSocket.SendCommand(Cmd: String): Integer;
 begin
-  self.SendCommand(Cmd, '', '');
+  Result := self.SendCommand(Cmd, '', '');
 end;
 
 { Set a line breakpoint }

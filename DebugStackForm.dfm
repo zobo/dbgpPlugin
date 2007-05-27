@@ -83,6 +83,7 @@ object DebugStackForm1: TDebugStackForm1
     RightDock = False
     DockStyle = NppDockingForm1.JvDockVSNetStyle1
     CustomDock = False
+    Left = 8
     Top = 24
   end
 end
