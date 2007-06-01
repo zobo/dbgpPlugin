@@ -253,9 +253,13 @@ begin
   inherited;
   if (Msg.Msg = WM_CREATE) then
   begin
-  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINE, 5, SC_MARK_ARROW);
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINE,  5, SC_MARK_SHORTARROW{SC_MARK_ARROW});
   SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETFORE, 5, $000000);
   SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETBACK, 5, $00ff00);
+
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINE,  4, SC_MARK_ROUNDRECT);
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETFORE, 4, $0000ff);
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETBACK, 4, $000055);
 
   // menu test
   hm := GetMenu(self.NppData.NppHandle);

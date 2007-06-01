@@ -1,8 +1,5 @@
 library dbgpPlugin;
-
-
-
-
+{$R 'dbgpPluginRes.res' 'dbgpPluginRes.rc'}
 
 uses
   SysUtils,

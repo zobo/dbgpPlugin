@@ -31,14 +31,14 @@ FEATURES
 + tracing command (step into, over, out, run)
 + tracing indicator (SCI)
 - fast eval on mouse dwell
-- STDOUT redirect
+- STDOUT redirect (log child)
 - STDERR redirect
 ? watch
-- NL convert
-/ toolbar icons
++ NL convert
+/ toolbar icons (step into, over,out, run, add (remove) breakpoint, child icons [eval,raw,stack,global ctn, local ctx .. maybe not all of them])
 - DBGp proxy support
 / file mapping (server ip based)
-- dbgpp error processing...
+/ dbgpp error processing...
 - interface for context depth (maye on the stack child, and floating?)
 
 ( - todo, / started, + done, ? don't know if I'll do it )

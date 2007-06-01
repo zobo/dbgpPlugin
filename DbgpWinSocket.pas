@@ -281,10 +281,14 @@ Recv(672): <?xml version="1.0" encoding="iso-8859-1"?>
     list[i].numchildren := x.Attributes['numchildren'];
     list[i].data := '';
     if (x.Attributes['encoding'] = 'base64') then
+    begin
       if ((VarType(x.ChildNodes[0].NodeValue) and VarTypeMask) = varOleStr) then
         list[i].data := Decode64(x.ChildNodes[0].NodeValue);
-    //else
-      //list[i].data := x.NodeValue;
+    end
+    else
+    begin
+      list[i].data := x.ChildNodes[0].NodeValue;
+    end;
     list[i].children := nil;
     if (list[i].haschildren) then
     begin
@@ -352,6 +356,13 @@ var
   context: Integer;
 begin
   //process context
+  if (self.xml.ChildNodes[1].ChildNodes[0].NodeName = 'error') then
+  begin
+    ShowMessage('Error ('+self.xml.ChildNodes[1].ChildNodes[0].Attributes['code']+'): '+
+      self.xml.ChildNodes[1].ChildNodes[0].ChildNodes[0].ChildNodes[0].NodeValue);
+    exit;
+  end;
+
   self.ProcessProperty(self.xml.ChildNodes[1].ChildNodes, list);
   context := 0;
   try

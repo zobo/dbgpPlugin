@@ -7,7 +7,7 @@ uses
   Dialogs, NppDockingForm, StdCtrls, ScktComp, DbgpWinSocket, ComCtrls,
   Buttons, ExtCtrls, Grids, JvDockTree, JvDockControlForm, JvDockVCStyle,
   JvComponentBase, DebugStackForm, DebugVarForm, JvDockVIDStyle, JvDockVSNetStyle,
-  DebugEvalForm, DebugRawForm;
+  DebugEvalForm, DebugRawForm, ImgList, ToolWin;
 
 type
   TNppDockingForm1 = class(TNppDockingForm)
@@ -15,6 +15,10 @@ type
     Button3: TButton;
     JvDockServer1: TJvDockServer;
     JvDockVSNetStyle1: TJvDockVSNetStyle;
+    BitBtnStepInto: TBitBtn;
+    BitBtnStepOver: TBitBtn;
+    BitBtnStepOut: TBitBtn;
+    BitBtnRun: TBitBtn;
     procedure FormCreate(Sender: TObject);
     procedure ServerSocket1Accept(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -27,6 +31,10 @@ type
     procedure Button3Click(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormResize(Sender: TObject);
+    procedure BitBtnStepIntoClick(Sender: TObject);
+    procedure BitBtnStepOverClick(Sender: TObject);
+    procedure BitBtnStepOutClick(Sender: TObject);
+    procedure BitBtnRunClick(Sender: TObject);
   private
     { Private declarations }
     procedure sockDbgpStack(Sender:TDbgpWinSocket; Stack: TStackList);
@@ -113,6 +121,11 @@ begin
     //self.sock.SetFeature('notify_ok', '1');
   end;
   }
+  // implement some sort of state machine...
+  self.BitBtnStepInto.Enabled := true;
+  self.BitBtnStepOver.Enabled := true;
+  self.BitBtnStepOut.Enabled := true;
+  self.BitBtnRun.Enabled := true;
 end;
 
 procedure TNppDockingForm1.ServerSocket1GetSocket(Sender: TObject;
@@ -151,7 +164,13 @@ begin
   self.sock := nil;
   self.DebugStackForm1.ClearStack;
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
+  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 4, 0);
   //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, SC_TIME_FOREVER,0);
+
+  self.BitBtnStepInto.Enabled := false;
+  self.BitBtnStepOver.Enabled := false;
+  self.BitBtnStepOut.Enabled := false;
+  self.BitBtnRun.Enabled := false;
 end;
 
 procedure TNppDockingForm1.Button3Click(Sender: TObject);
@@ -180,6 +199,9 @@ begin
 }
   self.Npp.GetFileLine(s,i);
   self.sock.SetBreakpoint(s,i+1);
+
+  // test
+  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, i, 4);
 end;
 
 procedure TNppDockingForm1.sockDbgpStack(Sender: TDbgpWinSocket; Stack: TStackList);
@@ -286,6 +308,27 @@ begin
  // send context refresh
  if (Assigned(self.sock)) then
    self.sock.GetContext(TForm(Sender).Tag);
+end;
+
+{ "Toolbar" icons }
+procedure TNppDockingForm1.BitBtnStepIntoClick(Sender: TObject);
+begin
+  self.DoResume(StepInto);
+end;
+
+procedure TNppDockingForm1.BitBtnStepOverClick(Sender: TObject);
+begin
+  self.DoResume(StepOver);
+end;
+
+procedure TNppDockingForm1.BitBtnStepOutClick(Sender: TObject);
+begin
+  self.DoResume(StepOut);
+end;
+
+procedure TNppDockingForm1.BitBtnRunClick(Sender: TObject);
+begin
+  self.DoResume(Run);
 end;
 
 end.
