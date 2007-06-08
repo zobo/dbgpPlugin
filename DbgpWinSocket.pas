@@ -61,6 +61,8 @@ type
     xml: IXMLDocument;
     buffer: String;
     TransID: Integer;
+    lastEval: String;
+    init: TInit;
   protected
     { Protected declarations }
     FOnDbgpStack: TStackCB;
@@ -79,7 +81,8 @@ type
     function ProcessResponse_breakpoint_set: String;
     function ProcessResponse: String;
 
-    procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems);
+    procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems); overload;
+    procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems; ParentItem: PPropertyItem); overload;
   public
     { Public declarations }
     maps: TMaps;
@@ -152,18 +155,20 @@ begin
   begin
     exit;
   end;
-  for i:=0 to Length(self.maps) do
+  for i:=0 to Length(self.maps)-1 do
   begin
-    //if (self.maps[i][0] == 'remote ip') then continue;
-    if (self.maps[i][2] = LeftStr(Local, Length(self.maps[i][2]))) then
+    if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.RemoteAddress) then continue;
+    if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
+    if (self.maps[i][3] = LeftStr(Local, Length(self.maps[i][3]))) then
     begin
-      r := 'file://'+self.maps[i][1];
-      r := r + Copy(Local, Length(self.maps[i][2])+1, MaxInt);
+      r := 'file://'+self.maps[i][2];
+      r := r + Copy(Local, Length(self.maps[i][3])+1, MaxInt);
       r := StringReplace(r, '\', '/', [rfReplaceAll]);
       Result := r;
       exit;
     end;
   end;
+  ShowMessage('Unable to map filename: '+Local+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+')');
 end;
 
 function TDbgpWinSocket.MapRemoteToLocal(Remote: String): String;
@@ -178,18 +183,21 @@ begin
   begin
     exit;
   end;
-  for i:=0 to Length(self.maps) do
+  for i:=0 to Length(self.maps)-1 do
   begin
-    //if (self.maps[i][0] == 'remote ip') then continue;
-    if (self.maps[i][1] = LeftStr(Remote, Length(self.maps[i][1]))) then
+    if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.RemoteAddress) then continue;
+    if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
+    if (self.maps[i][2] = LeftStr(Remote, Length(self.maps[i][2]))) then
     begin
-      r := self.maps[i][2];
-      r := r + Copy(Remote, Length(self.maps[i][1])+1, MaxInt);
+      r := self.maps[i][3];
+      r := r + Copy(Remote, Length(self.maps[i][2])+1, MaxInt);
       r := StringReplace(r, '/', '\', [rfReplaceAll]);
       Result := r;
       exit;
     end;
   end;
+  // throw exception??
+  ShowMessage('Unable to map filename: '+Remote+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+')');
 end;
 
 { procesiramo init}
@@ -215,10 +223,12 @@ Data(404): <?xml version="1.0" encoding="iso-8859-1"?>
 
 </init>
 }
-  init.filename := self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
   init.language := self.xml.ChildNodes[1].Attributes['language'];
   init.appid := self.xml.ChildNodes[1].Attributes['appid'];
   init.idekey := self.xml.ChildNodes[1].Attributes['idekey'];
+  self.init := init; // need idekey before we can translate files...
+  init.filename := self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
+  self.init := init;
 
   if (Assigned(self.FOnDbgpInit)) then self.FOnDbgpInit(self, init);
 
@@ -228,6 +238,12 @@ end;
 { splisna funkcija za rekurzivno procesiranje varov}
 procedure TDbgpWinSocket.ProcessProperty(varxml: IXMLNodeList;
   var list: TPropertyItems);
+begin
+  self.ProcessProperty(varxml, list, nil);
+end;
+
+procedure TDbgpWinSocket.ProcessProperty(varxml: IXMLNodeList;
+  var list: TPropertyItems; ParentItem: PPropertyItem);
 var
   i: Integer;
 //  c: Integer;
@@ -268,7 +284,7 @@ Recv(672): <?xml version="1.0" encoding="iso-8859-1"?>
     list[i].name := x.Attributes['name'];
     if (list[i].name = '') then list[i].name := '?';
     list[i].fullname := x.Attributes['fullname'];
-    if (list[i].fullname = '') then list[i].fullname := list[i].name;
+    //if (list[i].fullname = '') then list[i].fullname := list[i].name;
     list[i].datatype := x.Attributes['type'];
     list[i].classname := x.Attributes['classname'];
     list[i].constant := (x.Attributes['constant'] = '1');
@@ -280,24 +296,37 @@ Recv(672): <?xml version="1.0" encoding="iso-8859-1"?>
     list[i].key := x.Attributes['key'];
     list[i].numchildren := x.Attributes['numchildren'];
     list[i].data := '';
-    if (x.Attributes['encoding'] = 'base64') then
+
+    // try to compensate for missing fullname attr...
+    if (list[i].fullname = '') and (ParentItem <> nil) then
     begin
-      if ((VarType(x.ChildNodes[0].NodeValue) and VarTypeMask) = varOleStr) then
-        list[i].data := Decode64(x.ChildNodes[0].NodeValue);
+      if (ParentItem^.datatype = 'array') then list[i].fullname := ParentItem^.fullname+'["'+list[i].name+'"]';
+      if (ParentItem^.datatype = 'object') then list[i].fullname := ParentItem^.fullname+'->'+list[i].name;
     end
-    else
+    else if (list[i].fullname = '') and (self.lastEval[1] = '$') then
     begin
-      list[i].data := x.ChildNodes[0].NodeValue;
+      list[i].fullname := self.lastEval;
     end;
+
+    if (x.HasChildNodes) and (x.ChildNodes[0].NodeType in [ntText, ntCData]) then
+    begin
+      if (x.Attributes['encoding'] = 'base64') then
+      begin
+        list[i].data := Decode64(x.ChildNodes[0].Text);
+      end
+      else
+      begin
+        list[i].data := x.ChildNodes[0].Text;
+      end;
+    end;
+
     list[i].children := nil;
     if (list[i].haschildren) then
     begin
       New(list[i].children); // where to dispose?
-      self.ProcessProperty(x.ChildNodes, list[i].children^);
+      self.ProcessProperty(x.ChildNodes, list[i].children^, @list[i]);
     end;
-    // todo process children.. recurs
   end;
-
 end;
 
 // Predvsem reakcije na status.. break in stop
@@ -382,6 +411,8 @@ var
   list: TPropertyItems;
 begin
   self.ProcessProperty(self.xml.ChildNodes[1].ChildNodes, list);
+  if (Length(list)>0) and (self.lastEval <> '') then
+    list[0].fullname := self.lastEval;
   if (Assigned(self.FOnDbgpEval)) then
     self.FOnDbgpEval(self,-1,list);
   FreePropertyItems(list);
@@ -477,6 +508,7 @@ begin
   self.xml.Active := true;
 
   res := self.xml.ChildNodes[1].NodeName;
+try
   if (res = 'init') then
   begin
     r := self.ProcessInit;
@@ -506,10 +538,11 @@ begin
   begin
     r := self.ProcessStream;
   end;
-
+finally
   self.xml.Active := false;
   self.xml := nil;
   self.buffer := '';
+end;
 end;
 
 procedure TDbgpWinSocket.Resume(runtype: TRun);
@@ -559,6 +592,7 @@ end;
 { Set a line breakpoint }
 procedure TDbgpWinSocket.SendEval(data: String);
 begin
+  self.lastEval := data;
   self.SendCommand('eval','',data);
 end;
 

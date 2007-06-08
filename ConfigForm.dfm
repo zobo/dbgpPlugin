@@ -16,6 +16,7 @@ object ConfigForm1: TConfigForm1
   OldCreateOrder = False
   Position = poDefault
   Visible = True
+  OnClose = FormClose
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
@@ -59,8 +60,8 @@ object ConfigForm1: TConfigForm1
       Top = 24
       Width = 465
       Height = 239
-      ColCount = 3
-      DefaultColWidth = 150
+      ColCount = 4
+      DefaultColWidth = 110
       DefaultRowHeight = 20
       FixedCols = 0
       RowCount = 2

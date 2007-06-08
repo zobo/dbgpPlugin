@@ -12,13 +12,15 @@ uses
 type
   TNppDockingForm1 = class(TNppDockingForm)
     ServerSocket1: TServerSocket;
-    Button3: TButton;
     JvDockServer1: TJvDockServer;
     JvDockVSNetStyle1: TJvDockVSNetStyle;
     BitBtnStepInto: TBitBtn;
     BitBtnStepOver: TBitBtn;
     BitBtnStepOut: TBitBtn;
     BitBtnRun: TBitBtn;
+    BitBtnBreakpoint: TBitBtn;
+    BitBtnEval: TBitBtn;
+    BitBtnClose: TBitBtn;
     procedure FormCreate(Sender: TObject);
     procedure ServerSocket1Accept(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -28,13 +30,15 @@ type
       Socket: TCustomWinSocket);
     procedure ServerSocket1ClientDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
-    procedure Button3Click(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormResize(Sender: TObject);
     procedure BitBtnStepIntoClick(Sender: TObject);
     procedure BitBtnStepOverClick(Sender: TObject);
     procedure BitBtnStepOutClick(Sender: TObject);
     procedure BitBtnRunClick(Sender: TObject);
+    procedure BitBtnBreakpointClick(Sender: TObject);
+    procedure BitBtnEvalClick(Sender: TObject);
+    procedure BitBtnCloseClick(Sender: TObject);
   private
     { Private declarations }
     procedure sockDbgpStack(Sender:TDbgpWinSocket; Stack: TStackList);
@@ -42,6 +46,7 @@ type
     procedure sockDbgpEval(Sender: TDbgpWinSocket; context: Integer; list: TPropertyItems);
     procedure sockDbgpContext(Sender: TDbgpWinSocket; context: Integer; list: TPropertyItems);
     procedure sockDbgpBreak(Sender: TDbgpWinSocket; Stopped: Boolean);
+    procedure sockDbgpStream(Sender: TDbgpWinSocket; stream, data:String);
 
     procedure ContextOnRefresh(Sender: TObject);
   public
@@ -114,18 +119,13 @@ begin
   begin
     self.DebugRawForm1.Memo1.Lines.Add('Accept: '+Socket.RemoteAddress);
   end;
-  {
-  if Assigned(self.sock) then
-  begin
-    //self.sock.GetFeature('support_async');
-    //self.sock.SetFeature('notify_ok', '1');
-  end;
-  }
   // implement some sort of state machine...
   self.BitBtnStepInto.Enabled := true;
   self.BitBtnStepOver.Enabled := true;
   self.BitBtnStepOut.Enabled := true;
   self.BitBtnRun.Enabled := true;
+  self.BitBtnBreakpoint.Enabled := true;
+  self.BitBtnEval.Enabled := true;
 end;
 
 procedure TNppDockingForm1.ServerSocket1GetSocket(Sender: TObject;
@@ -171,37 +171,8 @@ begin
   self.BitBtnStepOver.Enabled := false;
   self.BitBtnStepOut.Enabled := false;
   self.BitBtnRun.Enabled := false;
-end;
-
-procedure TNppDockingForm1.Button3Click(Sender: TObject);
-var
-  s: String;
-  //f: TextFile;
-  i: Integer;
-begin
-{
-  // test
-  Output redirect...
-
-  s := '';
-  SetLength(s, 200);
-  GetTempPath(200, PChar(s)); // stupid.. doda na koncu #0 in se ne da pripet vec stringa@#!@
-  SetLength(s, StrLen(PChar(s)));
-  s := s + 'STDOUT';
-  //self.Memo1.Lines.Add('tmp: '+s);
-  AssignFile(f, s);
-  Rewrite(f);
-  CloseFile(f);
-  SendMessage(self.Npp.NppData.NppHandle, WM_DOOPEN, 0, LPARAM(PChar(s)));
-
-  SendMessage(self.Npp.NppData.ScintillaMainHandle, SciSupport.SCI_CLEARALL,0,0);
-  SendMessage(self.Npp.NppData.ScintillaMainHandle, SciSupport.SCI_APPENDTEXT,10,LPARAM(PChar('123456789012')));
-}
-  self.Npp.GetFileLine(s,i);
-  self.sock.SetBreakpoint(s,i+1);
-
-  // test
-  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, i, 4);
+  self.BitBtnBreakpoint.Enabled := false;
+  self.BitBtnEval.Enabled := false;
 end;
 
 procedure TNppDockingForm1.sockDbgpStack(Sender: TDbgpWinSocket; Stack: TStackList);
@@ -216,12 +187,21 @@ end;
 
 procedure TNppDockingForm1.sockDbgpInit(Sender: TDbgpWinSocket; init: TInit);
 begin
-  // so omething with init packet?
+  // do something with init packet?
+  self.sock.SetFeature('max_depth','3'); // make configurable
+  {
+  if Assigned(self.sock) then
+  begin
+    //self.sock.GetFeature('support_async');
+    //self.sock.SetFeature('notify_ok', '1'); // unsupported by xdebug
+  end;
+  }
 end;
 
 // callback.. much less code than events.. lazy ass... q:)
 procedure TNppDockingForm1.GotoLineCB(filename: string; Lineno: Integer);
 begin
+  // @todo: create some helper functions in NppPlugin
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
   self.Npp.DoOpen(filename, lineno-1);
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
@@ -243,9 +223,6 @@ begin
   x := TDebugVarForm1.Create(self);
   x.Npp := self.Npp;
   x.UseMenu(false);
-  // fix list?
-  if (Length(list)>0) and Assigned(self.DebugEvalForm1) then
-        list[0].fullname := self.DebugEvalForm1.ComboBox1.Text; // ugly hack
   x.SetVars(list);
   x.Caption := 'Eval';
   x.Show;
@@ -299,8 +276,8 @@ end;
 
 procedure TNppDockingForm1.FormResize(Sender: TObject);
 begin
-  if (self.Height > 100) then
-  self.JvDockServer1.BottomDockPanel.Height := self.Height - 50;
+  if (self.Height > 60) then
+  self.JvDockServer1.BottomDockPanel.Height := self.Height - 30;
 end;
 
 procedure TNppDockingForm1.ContextOnRefresh(Sender: TObject);
@@ -329,6 +306,69 @@ end;
 procedure TNppDockingForm1.BitBtnRunClick(Sender: TObject);
 begin
   self.DoResume(Run);
+end;
+
+procedure TNppDockingForm1.BitBtnBreakpointClick(Sender: TObject);
+var
+  s: string;
+  i: integer;
+begin
+  self.Npp.GetFileLine(s,i);
+  self.sock.SetBreakpoint(s,i+1);
+  // @todo: create some helper functions in NppPlugin
+  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, i, 4);
+end;
+
+
+{
+procedure TNppDockingForm1.Button3Click(Sender: TObject);
+var
+  s: String;
+  //f: TextFile;
+  i: Integer;
+begin
+
+  // test
+  Output redirect...
+
+  s := '';
+  SetLength(s, 200);
+  GetTempPath(200, PChar(s)); // stupid.. doda na koncu #0 in se ne da pripet vec stringa@#!@
+  SetLength(s, StrLen(PChar(s)));
+  s := s + 'STDOUT';
+  //self.Memo1.Lines.Add('tmp: '+s);
+  AssignFile(f, s);
+  Rewrite(f);
+  CloseFile(f);
+  SendMessage(self.Npp.NppData.NppHandle, WM_DOOPEN, 0, LPARAM(PChar(s)));
+
+  SendMessage(self.Npp.NppData.ScintillaMainHandle, SciSupport.SCI_CLEARALL,0,0);
+  SendMessage(self.Npp.NppData.ScintillaMainHandle, SciSupport.SCI_APPENDTEXT,10,LPARAM(PChar('123456789012')));
+
+end;
+}
+
+
+procedure TNppDockingForm1.BitBtnEvalClick(Sender: TObject);
+begin
+  TDbgpNppPlugin(self.Npp).FuncEval;
+end;
+
+{ ugasne debugger }
+procedure TNppDockingForm1.BitBtnCloseClick(Sender: TObject);
+begin
+  if (Assigned(self.sock)) then self.sock.Close;
+  if (self.ServerSocket1.Active) then self.BitBtnClose.Caption := 'Turn ON' else self.BitBtnClose.Caption := 'Turn OFF';
+  if (self.ServerSocket1.Active) then self.ServerSocket1.Close else self.ServerSocket1.Open;
+end;
+
+
+{ test stream }
+procedure TNppDockingForm1.sockDbgpStream(Sender: TDbgpWinSocket; stream,
+  data: String);
+begin
+  self.DebugRawForm1.Memo1.Lines.Add(stream+': '+data);
+
 end;
 
 end.

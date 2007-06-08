@@ -34,7 +34,11 @@ var
 begin
   // send raw
   mf := self.Owner as TNppDockingForm1;
-  if Assigned(mf.sock) then mf.sock.SendText(self.Edit1.Text+#0);
+  if Assigned(mf.sock) then
+  begin
+    mf.sock.SendText(self.Edit1.Text+#0);
+    mf.sock.debugdata.Add('Raw: '+self.Edit1.Text);
+  end;
 end;
 
 end.

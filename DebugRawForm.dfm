@@ -47,6 +47,7 @@ object DebugRawForm1: TDebugRawForm1
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Send RAW'
+    Default = True
     TabOrder = 2
     OnClick = Button1Click
   end

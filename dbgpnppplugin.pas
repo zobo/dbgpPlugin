@@ -75,10 +75,7 @@ begin
 end;
 
 constructor TDbgpNppPlugin.Create;
-var f: TFuncItem;
-  //x:TToolbarIcons;
-  //tbx:TBitmap;
-  //ico:TIcon;
+var
   sk: PShortcutKey;
   i: Integer;
 begin
@@ -159,7 +156,6 @@ begin
   inc(i);
 
   self.ReadMaps(self.maps);
-
 end;
 
 
@@ -218,7 +214,8 @@ begin
   self.ConfigForm := TConfigForm1.Create(self);
   self.ConfigForm.DlgId := self.FuncArray[9].CmdID;
   self.RegisterForm(TForm(self.ConfigForm));
-  self.ConfigForm.Show;
+  self.ConfigForm.Hide;
+  self.ConfigForm.ShowModal;
 end;
 
 procedure TDbgpNppPlugin.FuncEval;
@@ -279,6 +276,8 @@ var
 begin
   SetLength(path, 1000);
   GetModuleFileName(0, PChar(path), 1000);
+  SetLength(path, StrLen(PChar(path)));
+
   path := ExtractFileDir(path);
   path := path + '\plugins\Config\dbgp.ini';
 
@@ -324,6 +323,7 @@ begin
 
   for i:=0 to Length(maps)-1 do
   begin
+    if (maps[i][0] = '') and (maps[i][1] = '') and (maps[i][2] = '') and (maps[i][3] = '') then continue;
     maps[i].Delimiter := ';';
     ini.WriteString('Mapping','Map'+IntToStr(i),maps[i].DelimitedText);
   end;

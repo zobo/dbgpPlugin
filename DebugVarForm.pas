@@ -104,7 +104,7 @@ begin
   Item := PPropertyItem(Sender.GetNodeData(Node));
 
   case Column of
-  0: {if (Node.Parent<>nil) then CellText := Item^.name else }CellText := Item^.fullname;
+  0: if (Node.Parent <> Sender.RootNode) then CellText := Item^.name else CellText := Item^.fullname;
   //1: CellText := Item^.data;
   1: CellText := AnsiReplaceStr(Item^.data, #10, #13+#10);
   2: CellText := Item^.datatype;
@@ -120,6 +120,10 @@ var
 begin
   if (self.VirtualStringTree1.FocusedNode = nil) then exit;
   Item := PPropertyItem(self.VirtualStringTree1.GetNodeData(self.VirtualStringTree1.FocusedNode));
+  if (Item^.datatype = 'array') or (Item^.datatype = 'object') then
+  begin
+    TNppDockingForm1(self.Owner).sock.SendEval(Item^.fullname);
+  end;
   if (Item^.datatype <> 'string') then exit;
   i := TDebugInspectorForm1.Create(nil);
   i.Show;
@@ -127,8 +131,6 @@ begin
   //i.AutoSize := true;
   //i.AutoSize := false; // wtf
   self.Npp.RegisterForm(TForm(i));
-
-
   // register witn npp?
 end;
 

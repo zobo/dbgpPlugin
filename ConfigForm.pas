@@ -18,6 +18,7 @@ type
     procedure DeleteButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button3Click(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
   public
@@ -52,9 +53,12 @@ var
   maps: TMaps;
   i: integer;
 begin
+  self.StringGrid1.RowCount := 2;
+  self.StringGrid1.ColCount := 4;
   self.StringGrid1.Cells[0,0] := 'Remote Server IP';
-  self.StringGrid1.Cells[1,0] := 'Remote Path';
-  self.StringGrid1.Cells[2,0] := 'Local Path';
+  self.StringGrid1.Cells[1,0] := 'IDE KEY';
+  self.StringGrid1.Cells[2,0] := 'Remote Path';
+  self.StringGrid1.Cells[3,0] := 'Local Path';
 
   (self.Npp as TDbgpNppPlugin).ReadMaps(maps);
 
@@ -81,6 +85,14 @@ begin
   end;
 
   (self.Npp as TDbgpNppPlugin).WriteMaps(maps);
+
+  self.Close;
+end;
+
+procedure TConfigForm1.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  Action := caFree;
 end;
 
 end.
