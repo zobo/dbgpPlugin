@@ -4,12 +4,13 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, ScktComp, WinSock, XMLDoc, XMLDOM, XMLIntf,
-  IdCoder3To4, StrUtils, Dialogs, Variants, Base64;
+  IdCoder3To4, StrUtils, Dialogs, Variants, Base64, IdGlobal;
 
 type
 //  TDbgpWinSocket = class;
 //  TDbgpRawEvent = procedure (Sender: TObject; Socket: TDbgpWinSocket; Data:String) of object;
 
+  TDbgpState = (dsStarting, dsStopping, dsStopped, dsRunning, dsBreak);
   TDbgpWinSocket = class;
   TRun = (Run, StepInto, StepOver, StepOut, Stop, Detach);
   TMaps = array of TStringList;
@@ -63,6 +64,7 @@ type
     TransID: Integer;
     lastEval: String;
     init: TInit;
+    remote_unix: boolean;
   protected
     { Protected declarations }
     FOnDbgpStack: TStackCB;
@@ -127,6 +129,7 @@ begin
   self.TransID := 1; // internal counter
   self.debugdata := TStringList.Create;
   self.Transaction_id := -1; // return transaction
+  self.remote_unix := true;
 end;
 
 procedure TDbgpWinSocket.GetContext(Context: integer);
@@ -150,7 +153,7 @@ var
   i: integer;
   r: string;
 begin
-  Result := 'file://'+Local;
+  Result := 'file:///'+URLEncode(Local);
   if (not Assigned(self.maps)) then
   begin
     exit;
@@ -161,14 +164,20 @@ begin
     if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
     if (self.maps[i][3] = LeftStr(Local, Length(self.maps[i][3]))) then
     begin
-      r := 'file://'+self.maps[i][2];
-      r := r + Copy(Local, Length(self.maps[i][3])+1, MaxInt);
-      r := StringReplace(r, '\', '/', [rfReplaceAll]);
-      Result := r;
+      r := self.maps[i][2] + Copy(Local, Length(self.maps[i][3])+1, MaxInt);
+      if (self.remote_unix) then
+      begin
+        r := StringReplace(r, '\', '/', [rfReplaceAll]);
+        Result := 'file://' + URLEncode(r);
+      end
+      else
+      begin
+        Result := 'file:///' + URLEncode(r);
+      end;
       exit;
     end;
   end;
-  ShowMessage('Unable to map filename: '+Local+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+')');
+  ShowMessage('Unable to map filename: '+Local+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
 end;
 
 function TDbgpWinSocket.MapRemoteToLocal(Remote: String): String;
@@ -176,7 +185,15 @@ var
   i: integer;
   r: string;
 begin
-  if (LeftStr(Remote, 7)='file://') then Remote := Copy(Remote,8,MaxInt);
+  if (LeftStr(Remote, 8)='file:///') and (Pos('%3A',Remote)=10) then
+  begin
+    self.remote_unix := false;
+    Remote := URLDecode(Copy(Remote,9,MaxInt));
+  end
+  else if (LeftStr(Remote, 7)='file://') then
+  begin
+    Remote := URLDecode(Copy(Remote,8,MaxInt));
+  end;
   Result := Remote;
 
   if (not Assigned(self.maps)) then
@@ -191,13 +208,13 @@ begin
     begin
       r := self.maps[i][3];
       r := r + Copy(Remote, Length(self.maps[i][2])+1, MaxInt);
-      r := StringReplace(r, '/', '\', [rfReplaceAll]);
+      if (self.remote_unix) then r := StringReplace(r, '/', '\', [rfReplaceAll]);
       Result := r;
       exit;
     end;
   end;
   // throw exception??
-  ShowMessage('Unable to map filename: '+Remote+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+')');
+  ShowMessage('Unable to map filename: '+Remote+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
 end;
 
 { procesiramo init}
@@ -303,7 +320,7 @@ Recv(672): <?xml version="1.0" encoding="iso-8859-1"?>
       if (ParentItem^.datatype = 'array') then list[i].fullname := ParentItem^.fullname+'["'+list[i].name+'"]';
       if (ParentItem^.datatype = 'object') then list[i].fullname := ParentItem^.fullname+'->'+list[i].name;
     end
-    else if (list[i].fullname = '') and (self.lastEval[1] = '$') then
+    else if (list[i].fullname = '') and (self.lastEval <> '') and (self.lastEval[1] = '$') then
     begin
       list[i].fullname := self.lastEval;
     end;

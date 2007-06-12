@@ -21,6 +21,7 @@ type
     BitBtnBreakpoint: TBitBtn;
     BitBtnEval: TBitBtn;
     BitBtnClose: TBitBtn;
+    BitBtnRaw: TBitBtn;
     procedure FormCreate(Sender: TObject);
     procedure ServerSocket1Accept(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -39,6 +40,7 @@ type
     procedure BitBtnBreakpointClick(Sender: TObject);
     procedure BitBtnEvalClick(Sender: TObject);
     procedure BitBtnCloseClick(Sender: TObject);
+    procedure BitBtnRawClick(Sender: TObject);
   private
     { Private declarations }
     procedure sockDbgpStack(Sender:TDbgpWinSocket; Stack: TStackList);
@@ -60,6 +62,7 @@ type
     procedure GotoLineCB(filename: string; Lineno:Integer);
     procedure DoResume(runtype: TRun);
     procedure DoEval;
+    procedure SetState(state: TDbgpState);
   end;
 
 var
@@ -107,6 +110,7 @@ begin
   self.JvDockServer1.BottomDockPanel.ShowDockPanel(true, self.DebugStackForm1);
   //self.JvDockServer1.BottomDockPanel.ShowDockPanel(true, self.DebugVarForm1);
 
+  self.SetState(DbgpWinSocket.dsStopped);
 end;
 
 procedure TNppDockingForm1.ServerSocket1Accept(Sender: TObject;
@@ -120,12 +124,7 @@ begin
     self.DebugRawForm1.Memo1.Lines.Add('Accept: '+Socket.RemoteAddress);
   end;
   // implement some sort of state machine...
-  self.BitBtnStepInto.Enabled := true;
-  self.BitBtnStepOver.Enabled := true;
-  self.BitBtnStepOut.Enabled := true;
-  self.BitBtnRun.Enabled := true;
-  self.BitBtnBreakpoint.Enabled := true;
-  self.BitBtnEval.Enabled := true;
+  self.SetState(DbgpWinSocket.dsStopped);
 end;
 
 procedure TNppDockingForm1.ServerSocket1GetSocket(Sender: TObject;
@@ -167,12 +166,7 @@ begin
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 4, 0);
   //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, SC_TIME_FOREVER,0);
 
-  self.BitBtnStepInto.Enabled := false;
-  self.BitBtnStepOver.Enabled := false;
-  self.BitBtnStepOut.Enabled := false;
-  self.BitBtnRun.Enabled := false;
-  self.BitBtnBreakpoint.Enabled := false;
-  self.BitBtnEval.Enabled := false;
+  self.SetState(dsStopped);
 end;
 
 procedure TNppDockingForm1.sockDbgpStack(Sender: TDbgpWinSocket; Stack: TStackList);
@@ -188,6 +182,7 @@ end;
 procedure TNppDockingForm1.sockDbgpInit(Sender: TDbgpWinSocket; init: TInit);
 begin
   // do something with init packet?
+  self.SetState(DbgpWinSocket.dsStarting);
   self.sock.SetFeature('max_depth','3'); // make configurable
   {
   if Assigned(self.sock) then
@@ -266,6 +261,7 @@ begin
   if (not Stopped) then
   begin
     Sender.GetStack;
+    self.SetState(DbgpWinSocket.dsBreak);
   end
   else
   begin
@@ -319,6 +315,57 @@ begin
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, i, 4);
 end;
 
+procedure TNppDockingForm1.BitBtnEvalClick(Sender: TObject);
+begin
+  TDbgpNppPlugin(self.Npp).FuncEval;
+end;
+
+{ ugasne debugger }
+procedure TNppDockingForm1.BitBtnCloseClick(Sender: TObject);
+begin
+  if (Assigned(self.sock)) then self.sock.Close;
+  if (self.ServerSocket1.Active) then self.BitBtnClose.Caption := 'Turn ON' else self.BitBtnClose.Caption := 'Turn OFF';
+  if (self.ServerSocket1.Active) then self.ServerSocket1.Close else self.ServerSocket1.Open;
+end;
+
+procedure TNppDockingForm1.BitBtnRawClick(Sender: TObject);
+begin
+  self.DebugRawForm1.Show;
+end;
+
+{ test stream }
+procedure TNppDockingForm1.sockDbgpStream(Sender: TDbgpWinSocket; stream,
+  data: String);
+begin
+  self.DebugRawForm1.Memo1.Lines.Add(stream+': '+data);
+
+end;
+
+{ set enable buttons and stuff }
+procedure TNppDockingForm1.SetState(state: TDbgpState);
+var
+  stepping, evaling, breaking: boolean;
+begin
+  stepping := false; evaling := false; breaking := false;
+
+  case state of
+  dsStarting: begin stepping := true; breaking := true; end;
+  dsStopping: stepping := true;
+  //dsStopped:
+  //dsRunning:
+  dsBreak: begin stepping := true; evaling := true; breaking := true; end;
+  end;
+
+  self.BitBtnStepInto.Enabled := stepping;
+  self.BitBtnStepOver.Enabled := stepping;
+  self.BitBtnStepOut.Enabled := stepping;
+  self.BitBtnRun.Enabled := stepping;
+
+  self.BitBtnEval.Enabled := evaling;
+  self.BitBtnBreakpoint.Enabled := breaking;
+end;
+
+
 
 {
 procedure TNppDockingForm1.Button3Click(Sender: TObject);
@@ -348,27 +395,5 @@ begin
 end;
 }
 
-
-procedure TNppDockingForm1.BitBtnEvalClick(Sender: TObject);
-begin
-  TDbgpNppPlugin(self.Npp).FuncEval;
-end;
-
-{ ugasne debugger }
-procedure TNppDockingForm1.BitBtnCloseClick(Sender: TObject);
-begin
-  if (Assigned(self.sock)) then self.sock.Close;
-  if (self.ServerSocket1.Active) then self.BitBtnClose.Caption := 'Turn ON' else self.BitBtnClose.Caption := 'Turn OFF';
-  if (self.ServerSocket1.Active) then self.ServerSocket1.Close else self.ServerSocket1.Open;
-end;
-
-
-{ test stream }
-procedure TNppDockingForm1.sockDbgpStream(Sender: TDbgpWinSocket; stream,
-  data: String);
-begin
-  self.DebugRawForm1.Memo1.Lines.Add(stream+': '+data);
-
-end;
 
 end.

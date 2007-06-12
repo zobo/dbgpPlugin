@@ -394,6 +394,16 @@ object NppDockingForm1: TNppDockingForm1
     OnClick = BitBtnCloseClick
     NumGlyphs = 2
   end
+  object BitBtnRaw: TBitBtn
+    Left = 232
+    Top = 0
+    Width = 33
+    Height = 25
+    Caption = 'DBG'
+    TabOrder = 7
+    OnClick = BitBtnRawClick
+    NumGlyphs = 2
+  end
   object ServerSocket1: TServerSocket
     Active = True
     Port = 9000
