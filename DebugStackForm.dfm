@@ -38,6 +38,7 @@ object DebugStackForm1: TDebugStackForm1
     Header.Options = [hoColumnResize, hoDrag, hoVisible]
     HintMode = hmTooltip
     ParentShowHint = False
+    PopupMenu = PopupMenu1
     ShowHint = True
     TabOrder = 0
     TreeOptions.PaintOptions = [toShowButtons, toShowDropmark, toShowRoot, toThemeAware, toUseBlendedImages]
@@ -85,5 +86,13 @@ object DebugStackForm1: TDebugStackForm1
     CustomDock = False
     Left = 8
     Top = 24
+  end
+  object PopupMenu1: TPopupMenu
+    Left = 40
+    Top = 24
+    object GetContext1: TMenuItem
+      Caption = 'GetContext'
+      OnClick = GetContext1Click
+    end
   end
 end

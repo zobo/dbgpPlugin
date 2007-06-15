@@ -1,4 +1,4 @@
-{
+/*
     This file is part of DBGP Plugin for Notepad++
     Copyright (C) 2007  Damjan Zobo Cvetko
 
@@ -15,38 +15,13 @@
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-}
+*/
 
-unit DebugEvalForm;
+IDB_DBGP_TEST               BITMAP                  "application_osx_terminal.bmp"
 
-interface
+//IDB_DBGP_STEP_OVER          BITMAP                  "step_over.bmp"
+//IDB_DBGP_STEP_INTO          BITMAP                  "step_into.bmp"
+//IDB_DBGP_STEP_OUT           BITMAP                  "step_out.bmp"
+//IDB_DBGP_RUN                BITMAP                  "run.bmp"
 
-uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls;
 
-type
-  TDebugEvalForm1 = class(TForm)
-    Button1: TButton;
-    Button2: TButton;
-    ComboBox1: TComboBox;
-    procedure Button1Click(Sender: TObject);
-  private
-    { Private declarations }
-  public
-    { Public declarations }
-  end;
-
-var
-  DebugEvalForm1: TDebugEvalForm1;
-
-implementation
-
-{$R *.dfm}
-
-procedure TDebugEvalForm1.Button1Click(Sender: TObject);
-begin
-  self.ComboBox1.Items.Add(self.ComboBox1.Text);
-end;
-
-end.

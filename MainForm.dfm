@@ -23,7 +23,10 @@ object NppDockingForm1: TNppDockingForm1
     Top = 0
     Width = 25
     Height = 25
+    Hint = 'Step into'
     Enabled = False
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 0
     OnClick = BitBtnStepIntoClick
     Glyph.Data = {
@@ -84,7 +87,10 @@ object NppDockingForm1: TNppDockingForm1
     Top = 0
     Width = 25
     Height = 25
+    Hint = 'Step over'
     Enabled = False
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 1
     OnClick = BitBtnStepOverClick
     Glyph.Data = {
@@ -145,7 +151,10 @@ object NppDockingForm1: TNppDockingForm1
     Top = 0
     Width = 25
     Height = 25
+    Hint = 'Step out'
     Enabled = False
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 2
     OnClick = BitBtnStepOutClick
     Glyph.Data = {
@@ -206,7 +215,10 @@ object NppDockingForm1: TNppDockingForm1
     Top = 0
     Width = 25
     Height = 25
+    Hint = 'Run'
     Enabled = False
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 3
     OnClick = BitBtnRunClick
     Glyph.Data = {
@@ -267,7 +279,10 @@ object NppDockingForm1: TNppDockingForm1
     Top = 0
     Width = 25
     Height = 25
+    Hint = 'Add breakpoint'
     Enabled = False
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 4
     OnClick = BitBtnBreakpointClick
     Glyph.Data = {
@@ -328,7 +343,10 @@ object NppDockingForm1: TNppDockingForm1
     Top = 0
     Width = 25
     Height = 25
+    Hint = 'Eval'
     Enabled = False
+    ParentShowHint = False
+    ShowHint = True
     TabOrder = 5
     OnClick = BitBtnEvalClick
     Glyph.Data = {

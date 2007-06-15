@@ -5,7 +5,7 @@ object DebugRawForm1: TDebugRawForm1
   Height = 235
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSizeToolWin
-  Caption = 'DebugRawForm1'
+  Caption = 'Raw DBGP'
   Color = clBtnFace
   DockSite = True
   DragKind = dkDock
@@ -26,8 +26,9 @@ object DebugRawForm1: TDebugRawForm1
     Left = 0
     Top = 0
     Width = 305
-    Height = 161
+    Height = 169
     Anchors = [akLeft, akTop, akRight, akBottom]
+    PopupMenu = PopupMenu1
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 0
@@ -35,18 +36,18 @@ object DebugRawForm1: TDebugRawForm1
   object Edit1: TEdit
     Left = 0
     Top = 176
-    Width = 225
+    Width = 249
     Height = 21
     Anchors = [akLeft, akRight, akBottom]
     TabOrder = 1
   end
   object Button1: TButton
-    Left = 232
+    Left = 256
     Top = 176
-    Width = 75
+    Width = 51
     Height = 25
     Anchors = [akRight, akBottom]
-    Caption = 'Send RAW'
+    Caption = 'Send'
     Default = True
     TabOrder = 2
     OnClick = Button1Click
@@ -60,5 +61,13 @@ object DebugRawForm1: TDebugRawForm1
     CustomDock = False
     Left = 8
     Top = 8
+  end
+  object PopupMenu1: TPopupMenu
+    Left = 40
+    Top = 8
+    object Clear1: TMenuItem
+      Caption = 'Clear'
+      OnClick = Clear1Click
+    end
   end
 end

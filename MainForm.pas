@@ -1,3 +1,22 @@
+{
+    This file is part of DBGP Plugin for Notepad++
+    Copyright (C) 2007  Damjan Zobo Cvetko
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+}
+
 unit MainForm;
 
 interface
@@ -51,6 +70,8 @@ type
     procedure sockDbgpStream(Sender: TDbgpWinSocket; stream, data:String);
 
     procedure ContextOnRefresh(Sender: TObject);
+    procedure StackOnGetContext(Sender: TObject; Depth: Integer);
+
   public
     { Public declarations }
     sock: TDbgpWinSocket;
@@ -79,6 +100,7 @@ procedure TNppDockingForm1.FormCreate(Sender: TObject);
 begin
   // laho bi tle zacel poslusat za dwell
   self.DebugStackForm1 := TDebugStackForm1.Create(self);
+  self.DebugStackForm1.OnGetContext := self.StackOnGetContext;
   //self.DebugStackForm1.Npp := self.Npp;
   self.Npp.RegisterForm(TForm(self.DebugStackForm1));
 
@@ -123,7 +145,6 @@ begin
   begin
     self.DebugRawForm1.Memo1.Lines.Add('Accept: '+Socket.RemoteAddress);
   end;
-  // implement some sort of state machine...
   self.SetState(DbgpWinSocket.dsStopped);
 end;
 
@@ -175,13 +196,12 @@ begin
   if (Length(Stack)>0) {and (Stack[0].stacktype = 'file')} then
     GotoLineCB(Stack[0].filename, Stack[0].lineno);
 
-  // to bi moral it v on context ali kej tazga
+  // Do something usefull with this...
   //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, 1000,0);
 end;
 
 procedure TNppDockingForm1.sockDbgpInit(Sender: TDbgpWinSocket; init: TInit);
 begin
-  // do something with init packet?
   self.SetState(DbgpWinSocket.dsStarting);
   self.sock.SetFeature('max_depth','3'); // make configurable
   {
@@ -194,6 +214,7 @@ begin
 end;
 
 // callback.. much less code than events.. lazy ass... q:)
+// Fix this..
 procedure TNppDockingForm1.GotoLineCB(filename: string; Lineno: Integer);
 begin
   // @todo: create some helper functions in NppPlugin
@@ -226,7 +247,11 @@ end;
 
 procedure TNppDockingForm1.DoResume(runtype: TRun);
 begin
-  if (Assigned(self.sock)) then self.sock.Resume(runtype);
+  if (Assigned(self.sock)) then
+  begin
+    self.SetState(DbgpWinSocket.dsRunning);
+    self.sock.Resume(runtype);
+  end;
 end;
 
 // show eval dlg and send eval cmd
@@ -243,8 +268,6 @@ begin
   if (r = mrOk) and Assigned(self.sock) then
   begin
     self.sock.SendEval(self.DebugEvalForm1.ComboBox1.Text);
-
-    // rad bi v eval treeju dal tole...
   end;
 end;
 
@@ -281,6 +304,14 @@ begin
  // send context refresh
  if (Assigned(self.sock)) then
    self.sock.GetContext(TForm(Sender).Tag);
+end;
+
+procedure TNppDockingForm1.StackOnGetContext(Sender: TObject;
+  Depth: Integer);
+begin
+  // get context for depth
+ if (Assigned(self.sock)) then
+   self.sock.GetContext(0,Depth);
 end;
 
 { "Toolbar" icons }
