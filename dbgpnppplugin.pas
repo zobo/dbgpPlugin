@@ -28,13 +28,14 @@ uses
   NppPlugin,
   MainForm, nppdockingform,
   ConfigForm, Forms, SciSupport,
-  Classes, Dialogs, IniFiles, DbgpWinSocket, Messages;
+  Classes, Dialogs, IniFiles, DbgpWinSocket, Messages, AboutForm;
 
 type
   TDbgpNppPlugin = class(TNppPlugin)
     private
       MainForm: TNppDockingForm1;
       ConfigForm: TConfigForm1;
+      AboutForm: TAboutForm1;
     public
       maps: TMaps;
       constructor Create;
@@ -50,6 +51,7 @@ type
       procedure FuncStepOut;
       procedure FuncRun;
       procedure FuncEval;
+      procedure FuncAbout;
       procedure ReadMaps(var maps: TMaps);
       procedure WriteMaps(maps: TMaps);
 
@@ -64,6 +66,7 @@ procedure _FuncStepOver; cdecl;
 procedure _FuncStepOut; cdecl;
 procedure _FuncRun; cdecl;
 procedure _FuncEval; cdecl;
+procedure _FuncAbout; cdecl;
 
 implementation
 
@@ -100,7 +103,7 @@ var
 begin
   inherited;
   // Setup menu items
-  SetLength(self.FuncArray,10);
+  SetLength(self.FuncArray,12);
 
   // #112 = F1... pojma nimam od kje...
   self.PluginName := 'DBGp';
@@ -169,8 +172,18 @@ begin
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Config');
+  StrCopy(self.FuncArray[i].ItemName, 'Config...');
   self.FuncArray[i].Func := _FuncConfig;
+  self.FuncArray[i].ShortcutKey := nil;
+  inc(i);
+
+  StrCopy(self.FuncArray[i].ItemName, '-');
+  self.FuncArray[i].Func := _Func1;
+  self.FuncArray[i].ShortcutKey := nil;
+  inc(i);
+
+  StrCopy(self.FuncArray[i].ItemName, 'About...');
+  self.FuncArray[i].Func := _FuncAbout;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
@@ -227,6 +240,19 @@ procedure _FuncEval; cdecl;
 begin
   Npp.FuncEval;
 end;
+procedure _FuncAbout; cdecl;
+begin
+  Npp.FuncAbout;
+end;
+
+procedure TDbgpNppPlugin.FuncAbout;
+begin
+  self.AboutForm := TAboutForm1.Create(self);
+  self.AboutForm.DlgId := self.FuncArray[11].CmdID;
+  self.RegisterForm(TForm(self.AboutForm));
+  self.AboutForm.Hide;
+  self.AboutForm.ShowModal;
+end;
 
 procedure TDbgpNppPlugin.FuncConfig;
 begin
@@ -277,11 +303,12 @@ begin
   SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETFORE, 4, $0000ff);
   SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETBACK, 4, $000055);
 
-  // menu test
+  // manipulate menu
   hm := GetMenu(self.NppData.NppHandle);
   ModifyMenu(hm, self.FuncArray[1].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
   ModifyMenu(hm, self.FuncArray[6].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
   ModifyMenu(hm, self.FuncArray[8].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
+  ModifyMenu(hm, self.FuncArray[10].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
 
   end;
 end;

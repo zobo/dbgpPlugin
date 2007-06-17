@@ -35,9 +35,9 @@ FEATURES / TODOS
 + tracing command (step into, over, out, run)
 + tracing indicator (SCI)
 - fast eval on mouse dwell (or at least some help with evaling)
-- STDOUT redirect (log child)
-- STDERR redirect
-? watch
+? STDOUT redirect (log child?)
+- STDERR redirect (log child?)
+- watch child
 / NL convert (needs tweaking)
 / toolbar icons (step into, over, out, run, add (remove) breakpoint, child icons?)
 - run to cursor
@@ -49,6 +49,86 @@ FEATURES / TODOS
 
 ( - todo, / started, + done, ? don't know if I'll do it )
 
+INSTALL
+
+Just drop the dbgpPlugin.dll into you Notepad++ plugins directory.
+Note: This plugin uses a set of shortcuts for debugging actions (run, eval,
+step...) that were taken from Delphi. F9 that is used for "Run" conflicts
+with a command from ConvertExt plugin. Also F7 could also conflict if it is
+enabled.
+
+USAGE
+
+When installed the plugin exposes a new submenu in the Plugins menu. The first
+item, “Debugger” starts the debugger. Note that when Notepad++ is loaded the
+debugger is not started. The main forms are not loaded hopefully so that less
+memory is used and to ensure faster startup. The second section is there mainly
+for the keyboard shortcuts. And then there is the Configuration.
+
+Configuration
+Currently configuration is used to set up file maps. There are 4 cols. Remote IP
+(this MUST be an IP not a hostname), IDE KEY, Remote Path and Local Path.
+Remote IP and IDE KEY may be left blank in witch case they are ignored.
+
+Some examples for file mappings:
+Remote IP	IDE KEY	Remote Path	Local Path
+10.0.0.1	zobo		/var/www/	W:\
+10.0.0.50				c:\dev\		x:\dev\
+127.0.0.1				d:\dev\		d:\dev\
+
+The first one is a classic mapping for a remote *nix box, while the second is a
+windows server. Local development should work right away, but if there are problems
+a dialog will pop up with some information. 
+
+Debugger
+When the debugger is started a dialog is docked at the bottom part of N++. It can
+be floated and attached elsewhere, but I think this is the best place for it. This
+dialog is used to dock other child dialogs. It also has a set of buttons that
+expose debugger commands. Currently, when started, a “Raw DBGP” form pops up.
+This can be used to send raw commands to the debugging engine and inspect the data
+send to the engine and back. Mostly for debugging, can be closed (but won’t currently unload).
+Right click to get a popup menu with “Clear” command.
+
+Debugging is started from the browser. I won’t go into this, but I do recommend
+the Firefox extension for starting XDebug sessions. When the debugging engine
+connects to the debugger N++ win flash and most of the buttons will get enabled.
+The debugger will do some basic initialization and will stay in the starting
+state. Go read the proper documentation to understand this. I recommend doing
+a “Step into” now, so that the relevant file will open.
+
+Stepping
+Once connected and in a starting or break state you can step around using
+Step out, Step into, Step over and Run (Continue).
+
+Breakpoints
+Breakpoints are in very early development stage. You can only set breakpoints
+and they do not persist over sessions (even if the markers stay on the Editor,
+they are not there after a session ends. todo). Position the cursor on a line
+where you want the breakpoint and then push the breakpoint button. It is possible
+that the breakpoint isn’t valid, but the engine cannot report that back to us for now.
+
+Evaling
+When in a break state you can eval things. Ctrl+F7 will bring up the eval window.
+You can type in something like  $paramter1  or  mysql_error() . Just give it a spin.
+
+Context windows
+Currently contexts are refreshed on demand. Right click to get a popup menu and
+select refresh.
+Note: There is a small bug in XDebug so when refreshing global context you
+will get the response into the Local context window. The bug has been fixed;
+we just have to wait for the next RC.
+
+Stack
+A stack is printed when stepping thru code. Double click on a row to go to that
+stack point. Right click on a stack row to get the local context from that stack
+level.
+
+Misc
+There is a "Turn OFF"/"Turn ON" button. It closes the listening socket. This
+is usefull if you work on a page that loads a bunch of banners that are
+processed on the same domain and each one would fire up the debugger. Turn
+the debugger off and then back on when you need it.
+
 BUILDING
 
 I use Delphi 6 (Update Pack 2), JVCL and VirtualTree.
@@ -56,4 +136,5 @@ I use Delphi 6 (Update Pack 2), JVCL and VirtualTree.
 THANKS
 
 - I guess Derick for creating this kickass debugging engine (http://www.xdebug.org).
-- Chris for being the first to test-drive this thing.
+- Don for Notepad++.
+- Chris for being the first to test-drive this thing and giving usefull sugestions.

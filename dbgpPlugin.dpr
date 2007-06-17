@@ -39,7 +39,8 @@ uses
   DebugEvalForm in 'DebugEvalForm.pas' {DebugEvalForm1},
   Base64 in 'Base64.pas',
   DebugInspectorForm in 'DebugInspectorForm.pas' {DebugInspectorForm1},
-  DebugRawForm in 'DebugRawForm.pas' {DebugRawForm1};
+  DebugRawForm in 'DebugRawForm.pas' {DebugRawForm1},
+  AboutForm in 'AboutForm.pas' {AboutForm1};
 
 {$R *.res}
 
