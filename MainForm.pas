@@ -41,6 +41,7 @@ type
     BitBtnEval: TBitBtn;
     BitBtnClose: TBitBtn;
     BitBtnRaw: TBitBtn;
+    Label1: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure ServerSocket1Accept(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -82,7 +83,8 @@ type
     DebugRawForm1: TDebugRawForm1;
     procedure GotoLineCB(filename: string; Lineno:Integer);
     procedure DoResume(runtype: TRun);
-    procedure DoEval;
+    procedure DoEval; overload;
+    procedure DoEval(data:string); overload;
     procedure SetState(state: TDbgpState);
   end;
 
@@ -181,6 +183,7 @@ procedure TNppDockingForm1.ServerSocket1ClientDisconnect(Sender: TObject;
   Socket: TCustomWinSocket);
 begin
   if (Assigned(self.DebugRawForm1)) then self.DebugRawForm1.Memo1.Lines.Add('Disconnect: '+Socket.RemoteAddress);
+  self.Label1.Caption := 'Disconnected...';
   self.sock := nil;
   self.DebugStackForm1.ClearStack;
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
@@ -204,6 +207,7 @@ procedure TNppDockingForm1.sockDbgpInit(Sender: TDbgpWinSocket; init: TInit);
 begin
   self.SetState(DbgpWinSocket.dsStarting);
   self.sock.SetFeature('max_depth','3'); // make configurable
+  self.Label1.Caption := 'Connected to '+self.sock.RemoteAddress+' idekey: '+init.idekey+' file: '+init.filename;
   {
   if Assigned(self.sock) then
   begin
@@ -265,11 +269,18 @@ begin
     self.Npp.RegisterForm(TForm(self.DebugEvalForm1));
   end;
   r := self.DebugEvalForm1.ShowModal;
-  if (r = mrOk) and Assigned(self.sock) then
+  if (r = mrOk) then
   begin
-    self.sock.SendEval(self.DebugEvalForm1.ComboBox1.Text);
+    self.DoEval(self.DebugEvalForm1.ComboBox1.Text);
   end;
 end;
+
+procedure TNppDockingForm1.DoEval(data: string);
+begin
+  if (Assigned(self.sock)) then
+    self.sock.SendEval(data);
+end;
+
 
 procedure TNppDockingForm1.FormClose(Sender: TObject;
   var Action: TCloseAction);
@@ -425,6 +436,7 @@ begin
 
 end;
 }
+
 
 
 end.

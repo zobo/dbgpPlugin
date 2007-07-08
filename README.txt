@@ -60,7 +60,7 @@ enabled.
 USAGE
 
 When installed the plugin exposes a new submenu in the Plugins menu. The first
-item, “Debugger” starts the debugger. Note that when Notepad++ is loaded the
+item, "Debugger" starts the debugger. Note that when Notepad++ is loaded the
 debugger is not started. The main forms are not loaded hopefully so that less
 memory is used and to ensure faster startup. The second section is there mainly
 for the keyboard shortcuts. And then there is the Configuration.
@@ -71,10 +71,10 @@ Currently configuration is used to set up file maps. There are 4 cols. Remote IP
 Remote IP and IDE KEY may be left blank in witch case they are ignored.
 
 Some examples for file mappings:
-Remote IP	IDE KEY	Remote Path	Local Path
-10.0.0.1	zobo		/var/www/	W:\
-10.0.0.50				c:\dev\		x:\dev\
-127.0.0.1				d:\dev\		d:\dev\
+Remote IP   IDE KEY     Remote Path   Local Path
+10.0.0.1    zobo        /var/www/     W:\
+10.0.0.50               c:\dev\       x:\dev\
+127.0.0.1               d:\dev\       d:\dev\
 
 The first one is a classic mapping for a remote *nix box, while the second is a
 windows server. Local development should work right away, but if there are problems
@@ -84,17 +84,17 @@ Debugger
 When the debugger is started a dialog is docked at the bottom part of N++. It can
 be floated and attached elsewhere, but I think this is the best place for it. This
 dialog is used to dock other child dialogs. It also has a set of buttons that
-expose debugger commands. Currently, when started, a “Raw DBGP” form pops up.
+expose debugger commands. Currently, when started, a "Raw DBGP" form pops up.
 This can be used to send raw commands to the debugging engine and inspect the data
 send to the engine and back. Mostly for debugging, can be closed (but won’t currently unload).
-Right click to get a popup menu with “Clear” command.
+Right click to get a popup menu with "Clear" command.
 
 Debugging is started from the browser. I won’t go into this, but I do recommend
 the Firefox extension for starting XDebug sessions. When the debugging engine
 connects to the debugger N++ win flash and most of the buttons will get enabled.
 The debugger will do some basic initialization and will stay in the starting
 state. Go read the proper documentation to understand this. I recommend doing
-a “Step into” now, so that the relevant file will open.
+a "Step into" now, so that the relevant file will open.
 
 Stepping
 Once connected and in a starting or break state you can step around using

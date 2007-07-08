@@ -141,7 +141,7 @@ begin
   Item := PPropertyItem(self.VirtualStringTree1.GetNodeData(self.VirtualStringTree1.FocusedNode));
   if (Item^.datatype = 'array') or (Item^.datatype = 'object') then
   begin
-    TNppDockingForm1(self.Owner).sock.SendEval(Item^.fullname);
+    TNppDockingForm1(self.Owner).DoEval(Item^.fullname);
   end;
   if (Item^.datatype <> 'string') then exit;
   i := TDebugInspectorForm1.Create(nil);

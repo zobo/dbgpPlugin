@@ -18,6 +18,13 @@ object NppDockingForm1: TNppDockingForm1
   OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 13
+  object Label1: TLabel
+    Left = 272
+    Top = 8
+    Width = 75
+    Height = 13
+    Caption = 'Disconnected...'
+  end
   object BitBtnStepInto: TBitBtn
     Left = 0
     Top = 0
