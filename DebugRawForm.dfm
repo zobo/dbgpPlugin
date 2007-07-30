@@ -33,14 +33,6 @@ object DebugRawForm1: TDebugRawForm1
     ScrollBars = ssBoth
     TabOrder = 0
   end
-  object Edit1: TEdit
-    Left = 0
-    Top = 176
-    Width = 249
-    Height = 21
-    Anchors = [akLeft, akRight, akBottom]
-    TabOrder = 1
-  end
   object Button1: TButton
     Left = 256
     Top = 176
@@ -49,8 +41,19 @@ object DebugRawForm1: TDebugRawForm1
     Anchors = [akRight, akBottom]
     Caption = 'Send'
     Default = True
-    TabOrder = 2
+    ModalResult = 1
+    TabOrder = 1
     OnClick = Button1Click
+  end
+  object ComboBox1: TComboBox
+    Left = 0
+    Top = 176
+    Width = 249
+    Height = 21
+    Anchors = [akLeft, akRight, akBottom]
+    ItemHeight = 13
+    TabOrder = 2
+    OnKeyUp = ComboBox1KeyUp
   end
   object JvDockClient1: TJvDockClient
     DirectDrag = False
@@ -65,6 +68,10 @@ object DebugRawForm1: TDebugRawForm1
   object PopupMenu1: TPopupMenu
     Left = 40
     Top = 8
+    object Copy1: TMenuItem
+      Caption = 'Copy'
+      OnClick = Copy1Click
+    end
     object Clear1: TMenuItem
       Caption = 'Clear'
       OnClick = Clear1Click

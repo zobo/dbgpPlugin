@@ -40,7 +40,9 @@ uses
   Base64 in 'Base64.pas',
   DebugInspectorForm in 'DebugInspectorForm.pas' {DebugInspectorForm1},
   DebugRawForm in 'DebugRawForm.pas' {DebugRawForm1},
-  AboutForm in 'AboutForm.pas' {AboutForm1};
+  AboutForm in 'AboutForm.pas' {AboutForm1},
+  DebugBreakpointsForm in 'DebugBreakpointsForm.pas' {DebugBreakpointsForm1},
+  DebugBreakpointEditForm in 'DebugBreakpointEditForm.pas' {DebugBreakpointEditForm1};
 
 {$R *.res}
 

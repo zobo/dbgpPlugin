@@ -31,8 +31,11 @@ type
     GroupBox1: TGroupBox;
     Button1: TButton;
     DeleteButton: TButton;
-    Button3: TButton;
     StringGrid1: TStringGrid;
+    GroupBox2: TGroupBox;
+    CheckBox1: TCheckBox;
+    CheckBox2: TCheckBox;
+    Button3: TButton;
     procedure Button1Click(Sender: TObject);
     procedure DeleteButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -87,6 +90,9 @@ begin
   begin
     self.StringGrid1.Rows[i+1] := maps[i];
   end;
+
+  self.CheckBox1.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_local;
+  self.CheckBox2.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_remote;
 end;
 
 
@@ -94,6 +100,7 @@ procedure TConfigForm1.Button3Click(Sender: TObject);
 var
   maps: TMaps;
   i: integer;
+  conf: TDbgpNppPluginConfig;
 begin
   // save maps
   SetLength(maps, self.StringGrid1.RowCount-1);
@@ -103,7 +110,10 @@ begin
     maps[i].AddStrings(self.StringGrid1.Rows[i+1]);
   end;
 
-  (self.Npp as TDbgpNppPlugin).WriteMaps(maps);
+  conf.maps := maps;
+  conf.refresh_local := self.CheckBox1.Checked;
+  conf.refresh_remote := self.CheckBox2.Checked;
+  (self.Npp as TDbgpNppPlugin).WriteMaps(conf);
 
   self.Close;
 end;

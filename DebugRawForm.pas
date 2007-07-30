@@ -23,18 +23,22 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, JvComponentBase, JvDockControlForm, StdCtrls, Menus;
+  Dialogs, JvComponentBase, JvDockControlForm, StdCtrls, Menus, Clipbrd;
 
 type
   TDebugRawForm1 = class(TForm)
     JvDockClient1: TJvDockClient;
     Memo1: TMemo;
-    Edit1: TEdit;
     Button1: TButton;
     PopupMenu1: TPopupMenu;
     Clear1: TMenuItem;
+    Copy1: TMenuItem;
+    ComboBox1: TComboBox;
     procedure Button1Click(Sender: TObject);
     procedure Clear1Click(Sender: TObject);
+    procedure Copy1Click(Sender: TObject);
+    procedure ComboBox1KeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
   private
     { Private declarations }
   public
@@ -58,14 +62,27 @@ begin
   mf := self.Owner as TNppDockingForm1;
   if Assigned(mf.sock) then
   begin
-    mf.sock.SendText(self.Edit1.Text+#0);
-    mf.sock.debugdata.Add('Raw: '+self.Edit1.Text);
+    mf.sock.SendText(self.ComboBox1.Text+#0);
+    mf.sock.debugdata.Add('Raw: '+self.ComboBox1.Text);
   end;
+  self.ComboBox1.Items.Add(self.ComboBox1.Text);
 end;
 
 procedure TDebugRawForm1.Clear1Click(Sender: TObject);
 begin
   self.Memo1.Clear;
+end;
+
+procedure TDebugRawForm1.Copy1Click(Sender: TObject);
+begin
+  if (self.Memo1.SelText = '') then exit;
+  Clipboard.SetTextBuf(PChar(self.Memo1.SelText));
+end;
+
+procedure TDebugRawForm1.ComboBox1KeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if (Key = VK_RETURN) then self.Button1Click(Sender);
 end;
 
 end.

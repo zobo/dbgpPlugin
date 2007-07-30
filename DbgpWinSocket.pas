@@ -23,7 +23,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, ScktComp, WinSock, XMLDoc, XMLDOM, XMLIntf,
-  IdCoder3To4, StrUtils, Dialogs, Variants, Base64, IdGlobal;
+  {IdCoder3To4, }StrUtils, Dialogs, Variants, Base64, IdGlobal;
 
 type
 //  TDbgpWinSocket = class;
@@ -67,6 +67,24 @@ type
     children: PPropertyItems;
   end;
   TPropertyItems = array of TPropertyItem;
+  TBreakpointType = (btLine, btCall, btReturn, btException, btConditional, btWatch);
+  PBreakpoint = ^TBreakpoint;
+  TBreakpoint = record
+    id: string;
+    breakpointtype: TBreakpointType;
+    filename: string;
+    lineno: integer;
+    state: boolean;
+    functionname: string;
+    classname: string;
+    temporary: boolean;
+    hit_count: integer;
+    hit_value: integer;
+    hit_condition: string; {?}
+    exception: string;
+    expression: string;
+  end;
+  TBreakpoints = array of TBreakpoint;
 //  TBreak = ();
   TStackList = array of TStackItem;
   TStackCB = procedure(Sender: TDbgpWinSocket; Stack: TStackList) of Object;
@@ -74,6 +92,7 @@ type
   TStreamCB = procedure(Sender: TDbgpWinSocket; stream, data:String) of Object;
   TInitCB = procedure(Sender: TDbgpWinSocket; init: TInit) of Object;
   TVarsCB = procedure(Sender: TDbgpWinSocket; context: Integer; list: TPropertyItems) of Object;
+  TBreakpointsCB = procedure(Sender: TDbgpWinSocket; breakpoints: TBreakpoints) of Object;
 
   TDbgpWinSocket = class(TServerClientWinSocket)
   private
@@ -92,6 +111,7 @@ type
     FOnDbgpInit: TInitCB;
     FOnDbgpEval: TVarsCB;
     FOnDbgpContext: TVarsCB;
+    FOnDbgpBreakpoints: TBreakpointsCB;
     function MapRemoteToLocal(Remote:String): String;
     function MapLocalToRemote(Local:String): String;
     function ProcessInit: String;
@@ -100,6 +120,7 @@ type
     function ProcessResponse_eval: String;
     function ProcessResponse_context_get: String;
     function ProcessResponse_breakpoint_set: String;
+    function ProcessResponse_breakpoint_list: String;
     function ProcessResponse: String;
 
     procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems); overload;
@@ -109,18 +130,21 @@ type
     maps: TMaps;
     debugdata: TStringList;
     stack: TStackList;
-    Transaction_id: Integer;
+    Transaction_id: String;
     constructor Create(Socket: TSocket; ServerWinSocket: TServerWinSocket);
+    destructor Destroy; override;
     function ReadDBGP: String;
     procedure GetFeature(FeatureName: String);
     procedure SetFeature(FeatureName: String; Value: String);
     procedure GetStack;
     procedure GetContext(Context:integer); overload;
     procedure GetContext(Context:integer; Depth:Integer); overload;
+    procedure GetBreakpoints;
     procedure SetStream(Str: string; Mode: Integer);
-    procedure SetBreakpoint(Filename:String; Line:Integer);
-
-    procedure SetBreakpointLine(filename: String; Line: Integer);
+    procedure SetBreakpoint(Filename: String; Line:Integer); overload;
+    procedure SetBreakpoint(bp: TBreakpoint); overload;
+    procedure UpdateBreakpoint(bp: TBreakpoint);
+    procedure RemoveBreakpoint(bp: TBreakpoint);
 
     procedure Resume(runtype: TRun);
     procedure SendEval(data:String);
@@ -135,6 +159,7 @@ type
     property OnDbgpInit: TInitCB read FOnDbgpInit write FOnDbgpInit;
     property OnDbgpEval: TVarsCB read FOnDbgpEval write FOnDbgpEval;
     property OnDbgpContext: TVarsCB read FOnDbgpContext write FOnDbgpContext;
+    property OnDbgpBreakpoints: TBreakpointsCB read FOnDbgpBreakpoints write FOnDbgpBreakpoints;
   end;
 
 implementation
@@ -148,14 +173,24 @@ begin
   inherited;
   self.TransID := 1; // internal counter
   self.debugdata := TStringList.Create;
-  self.Transaction_id := -1; // return transaction
+  self.Transaction_id := ''; // return transaction
   self.remote_unix := true;
+end;
+destructor TDbgpWinSocket.Destroy;
+begin
+  inherited;
 end;
 
 procedure TDbgpWinSocket.GetContext(Context: integer);
 begin
   self.SendCommand('context_get', '-c '+IntToStr(Context)); // todo depth
 end;
+
+procedure TDbgpWinSocket.GetBreakpoints;
+begin
+  self.SendCommand('breakpoint_list');
+end;
+
 procedure TDbgpWinSocket.GetContext(Context: integer; Depth: integer);
 begin
   self.SendCommand('context_get', '-c '+IntToStr(Context)+' -d '+IntToStr(Depth)); // todo depth
@@ -209,14 +244,15 @@ var
   i: integer;
   r: string;
 begin
-  if (LeftStr(Remote, 8)='file:///') and (Pos('%3A',Remote)=10) then
+  Remote := URLDecode(Remote);
+  if (LeftStr(Remote, 8)='file:///') and (Pos(':',Remote)=10) then
   begin
     self.remote_unix := false;
-    Remote := URLDecode(Copy(Remote,9,MaxInt));
+    Remote := Copy(Remote,9,MaxInt);
   end
   else if (LeftStr(Remote, 7)='file://') then
   begin
-    Remote := URLDecode(Copy(Remote,8,MaxInt));
+    Remote := Copy(Remote,8,MaxInt);
   end;
   Result := Remote;
 
@@ -413,6 +449,53 @@ begin
   end;
 end;
 
+function TDbgpWinSocket.ProcessResponse_breakpoint_list: String;
+var
+  varxml: IXMLNodeList;
+  i: integer;
+  bps: TBreakpoints;
+begin
+{
+<response xmlns="urn:debugger_protocol_v1" xmlns:xdebug="http://xdebug.org/dbgp/xdebug" command="breakpoint_list" transaction_id="33">
+	<breakpoint type="line" filename="file:///home/zobo/stuff/test1.php" lineno="12" state="enabled" hit_count="0" hit_value="0" id="27980007"></breakpoint>
+	<breakpoint type="return" function="phpinfo" state="enabled" hit_count="0" hit_value="0" id="27980009"></breakpoint>
+	<breakpoint type="line" filename="file:///home/zobo/stuff/test1.php" lineno="14" state="enabled" hit_count="0" hit_value="0" id="27980008"></breakpoint>
+	<breakpoint type="call" function="test2" class="test" state="enabled" hit_count="0" hit_value="0" id="27990002"></breakpoint>
+</response>
+}
+  varxml := self.xml.ChildNodes[1].ChildNodes;
+  if (varxml = nil) then exit;
+  SetLength(bps, varxml.Count);
+  for i:=0 to varxml.Count-1 do
+  begin
+    bps[i].id := varxml[i].Attributes['id'];
+    if (varxml[i].Attributes['type'] = 'line') then bps[i].breakpointtype := btLine;
+    if (varxml[i].Attributes['type'] = 'call') then bps[i].breakpointtype := btCall;
+    if (varxml[i].Attributes['type'] = 'return') then bps[i].breakpointtype := btReturn;
+    if (varxml[i].Attributes['type'] = 'exception') then bps[i].breakpointtype := btException;
+    if (varxml[i].Attributes['type'] = 'conditional') then bps[i].breakpointtype := btConditional;
+    if (varxml[i].Attributes['type'] = 'watch') then bps[i].breakpointtype := btWatch;
+    bps[i].filename := '';
+    if (varxml[i].Attributes['filename'] <> '') then
+      bps[i].filename := self.MapRemoteToLocal(varxml[i].Attributes['filename']);
+    try bps[i].lineno := StrToInt(varxml[i].Attributes['lineno']); except on EConvertError do bps[i].lineno := 0; end;
+    bps[i].state := (varxml[i].Attributes['state']='enabled');
+    bps[i].functionname := varxml[i].Attributes['function'];
+    bps[i].classname := varxml[i].Attributes['class'];
+    bps[i].temporary := (varxml[i].Attributes['temporary'] = '1');
+    try bps[i].hit_count := StrToInt(varxml[i].Attributes['hit_count']); except on EConvertError do bps[i].hit_count := 0; end;
+    try bps[i].hit_value := StrToInt(varxml[i].Attributes['hit_value']); except on EConvertError do bps[i].hit_value := 0; end;
+    bps[i].hit_condition := varxml[i].Attributes['hit_condition'];
+    if (bps[i].hit_condition = '') then bps[i].hit_condition := '>=';
+    bps[i].exception := varxml[i].Attributes['exception'];
+    { unimplemented }
+    if (varxml[i].HasChildNodes and (varxml[i].ChildNodes[1].NodeName = 'expression') and (varxml[i].ChildNodes[1].ChildNodes[1] <> nil)) then
+      bps[i].expression := varxml[i].ChildNodes[1].ChildNodes[1].Text;
+  end;
+  if (Assigned(self.FOnDbgpBreakpoints)) then
+    self.FOnDbgpBreakpoints(self,bps);
+end;
+
 function TDbgpWinSocket.ProcessResponse_breakpoint_set: String;
 var
   id: String;
@@ -521,12 +604,12 @@ var
  len:Integer;
 begin
   s := self.ReceiveText;
+  s := self.buffer + s;
   if (s[Length(s)] <> #0) then // message not yet complete... return and wait for better times
   begin
-    self.buffer := self.buffer + s;
+    self.buffer := s;
     exit;
   end;
-  s := self.buffer + s;
 
   len := StrToInt(s);
   if (Length(s)<len) then
@@ -537,30 +620,41 @@ begin
   end;
 
   s2 := Copy(s, StrLen(PChar(s))+2, len);
+  s := Copy(s, StrLen(PChar(s))+2+len+1, MaxInt);
+
+  self.buffer := s; // ostanek
 
   // for raw log
-  self.debugdata.Add('Recv: '+s2);
+   self.debugdata.Add('Recv: '+s2);
 
-  self.Transaction_id := -1;
+  self.Transaction_id := '';
 
   self.xml := TXMLDocument.Create(nil);
   self.xml.Options := [];
   self.xml.XML.Add(s2);
   self.xml.Active := true;
 
-  res := self.xml.ChildNodes[1].NodeName;
 try
+  res := self.xml.ChildNodes[1].NodeName;
+  // handle error?
+  if (self.xml.ChildNodes[1].HasChildNodes) and (self.xml.ChildNodes[1].ChildNodes[0].NodeName = 'error') then
+  begin
+  // better to do an onDbgpError!
+    raise Exception.Create('DBGP Error: '+
+      'Response type: '+res+' '+
+      'Command: '+self.xml.ChildNodes[1].Attributes['command']+' '+
+      'Error code: '+self.xml.ChildNodes[1].ChildNodes[0].Attributes['code']+' '+
+      'Error: '+self.xml.ChildNodes[1].ChildNodes[0].Attributes['apperr']+' '+
+      'Error message: '+self.xml.ChildNodes[1].ChildNodes[0].ChildNodes[0].ChildNodes[0].Text
+    );
+  end;
   if (res = 'init') then
   begin
     r := self.ProcessInit;
   end
   else if (res = 'response') then
   begin
-    s := self.xml.ChildNodes[1].Attributes['transaction_id'];
-    try
-      self.Transaction_id := StrToInt(s);
-    except
-    end;
+    self.Transaction_id := self.xml.ChildNodes[1].Attributes['transaction_id'];
     if (self.xml.ChildNodes[1].Attributes['command'] = 'stack_get') then
     r := self.ProcessResponse_stack
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'eval') then
@@ -569,6 +663,8 @@ try
     r := self.ProcessResponse_context_get
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'breakpoint_set') then
     r := self.ProcessResponse_breakpoint_set
+    else if (self.xml.ChildNodes[1].Attributes['command'] = 'breakpoint_list') then
+    r := self.ProcessResponse_breakpoint_list
     else
     r := self.ProcessResponse;
   end
@@ -582,8 +678,8 @@ try
 finally
   self.xml.Active := false;
   self.xml := nil;
-  self.buffer := '';
 end;
+  if (self.buffer<>'') then self.ReadDBGP;
 end;
 
 procedure TDbgpWinSocket.Resume(runtype: TRun);
@@ -615,7 +711,8 @@ begin
   if (Args <> '') then
     d := d + ' '+Args;
   if (Base64 <> '') then
-    d := d + ' -- '+Base64Encode(Base64);
+    d := d + ' -- '+Encode64(Base64);
+    //d := d + ' -- '+Base64Encode(Base64);
   self.SendText(d+#0);
   self.debugdata.Add('Send: '+d);
 end;
@@ -643,12 +740,48 @@ begin
     ' -n '+IntToStr(Line));
 end;
 
-procedure TDbgpWinSocket.SetBreakpointLine(filename: String;
-  Line: Integer);
+procedure TDbgpWinSocket.SetBreakpoint(bp: TBreakpoint);
+var
+  cmd: String;
 begin
-  self.SendCommand('breakpoint_set', '-t line -f '+self.MapLocalToRemote(filename)+
-                        ' -n '+IntToStr(Line) );
+  case (bp.breakpointtype) of
+    btLine: cmd := '-t line';
+    btCall: cmd := '-t call';
+    btReturn: cmd := '-t return';
+    btException: cmd := '-t exception';
+  end;
+  if (bp.filename <> '') then
+  begin
+    cmd := cmd + ' -f '+self.MapLocalToRemote(bp.filename);
+    cmd := cmd + ' -n '+IntToStr(bp.lineno);
+  end;
+  if (bp.state) then cmd := cmd + ' -s enabled' else cmd := cmd + ' -s disabled';
+  if (bp.functionname <> '') then cmd := cmd + ' -m '+bp.functionname;
+  if (bp.classname <> '') then cmd := cmd + ' -a '+bp.classname;
+  if (bp.temporary) then cmd := cmd + ' -r 1';
+  cmd := cmd + ' -h '+IntToStr(bp.hit_value)+' -o '+bp.hit_condition;
+  if (bp.exception <> '') then cmd := cmd + ' -x '+bp.exception;
+  self.SendCommand('breakpoint_set', cmd, bp.expression);
 end;
+
+procedure TDbgpWinSocket.RemoveBreakpoint(bp: TBreakpoint);
+begin
+  self.SendCommand('breakpoint_remove', '-d '+bp.id);
+end;
+
+procedure TDbgpWinSocket.UpdateBreakpoint(bp: TBreakpoint);
+var
+  cmd: String;
+begin
+  cmd := '-d ' + bp.id;
+  if (bp.state) then cmd := cmd + ' -s enabled' else cmd := cmd + ' -s disabled';
+  cmd := cmd + ' -n ' + IntToStr(bp.lineno);
+  cmd := cmd + ' -h ' + IntToStr(bp.hit_value);
+  cmd := cmd + ' -o ' + bp.hit_condition;
+
+  self.SendCommand('breakpoint_update', cmd);
+end;
+
 
 procedure TDbgpWinSocket.SetFeature(FeatureName, Value: String);
 begin

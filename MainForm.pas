@@ -26,7 +26,7 @@ uses
   Dialogs, NppDockingForm, StdCtrls, ScktComp, DbgpWinSocket, ComCtrls,
   Buttons, ExtCtrls, Grids, JvDockTree, JvDockControlForm, JvDockVCStyle,
   JvComponentBase, DebugStackForm, DebugVarForm, JvDockVIDStyle, JvDockVSNetStyle,
-  DebugEvalForm, DebugRawForm, ImgList, ToolWin;
+  DebugEvalForm, DebugRawForm, ImgList, ToolWin, DebugBreakpointsForm;
 
 type
   TNppDockingForm1 = class(TNppDockingForm)
@@ -63,15 +63,22 @@ type
     procedure BitBtnRawClick(Sender: TObject);
   private
     { Private declarations }
+    state: TDbgpState;
     procedure sockDbgpStack(Sender:TDbgpWinSocket; Stack: TStackList);
     procedure sockDbgpInit(Sender:TDbgpWinSocket; init: TInit);
     procedure sockDbgpEval(Sender: TDbgpWinSocket; context: Integer; list: TPropertyItems);
     procedure sockDbgpContext(Sender: TDbgpWinSocket; context: Integer; list: TPropertyItems);
     procedure sockDbgpBreak(Sender: TDbgpWinSocket; Stopped: Boolean);
     procedure sockDbgpStream(Sender: TDbgpWinSocket; stream, data:String);
+    procedure sockDbgpBreakpoints(Sender: TDbgpWinSocket; breakpoints: TBreakpoints);
 
     procedure ContextOnRefresh(Sender: TObject);
     procedure StackOnGetContext(Sender: TObject; Depth: Integer);
+
+    procedure BreakpointAdd(Sender: TComponent; bp: TBreakpoint);
+    procedure BreakpointEdit(Sender: TComponent; bp: TBreakpoint);
+    procedure BreakpointDelete(Sender: TComponent; bp: TBreakpoint);
+    procedure StackSelect(Sender: TObject; filename: String; lineno: integer);
 
   public
     { Public declarations }
@@ -81,7 +88,8 @@ type
     ContextGlobalForm1: TDebugVarForm1;
     DebugEvalForm1: TDebugEvalForm1;
     DebugRawForm1: TDebugRawForm1;
-    procedure GotoLineCB(filename: string; Lineno:Integer);
+    DebugBreakpointsForm1: TDebugBreakpointsForm1;
+    procedure GotoLine(filename: string; Lineno:Integer);
     procedure DoResume(runtype: TRun);
     procedure DoEval; overload;
     procedure DoEval(data:string); overload;
@@ -103,6 +111,7 @@ begin
   // laho bi tle zacel poslusat za dwell
   self.DebugStackForm1 := TDebugStackForm1.Create(self);
   self.DebugStackForm1.OnGetContext := self.StackOnGetContext;
+  self.DebugStackForm1.OnStackSelect := self.StackSelect;
   //self.DebugStackForm1.Npp := self.Npp;
   self.Npp.RegisterForm(TForm(self.DebugStackForm1));
 
@@ -126,13 +135,19 @@ begin
   self.DebugRawForm1 := TDebugRawForm1.Create(self);
   //self.DebugRawForm1.Npp := self.Npp;
   self.Npp.RegisterForm(TForm(self.DebugRawForm1));
-  self.DebugRawForm1.Show;
+  //self.DebugRawForm1.Show;
 
-  self.DebugStackForm1.ManualDock(self.JvDockServer1.BottomDockPanel);
-  //self.DebugVarForm1.ManualDock(self.JvDockServer1.BottomDockPanel);
+  //self.DebugStackForm1.ManualDock(self.JvDockServer1.BottomDockPanel);
+  //self.JvDockServer1.BottomDockPanel.ShowDockPanel(true, self.DebugStackForm1);
 
-  self.JvDockServer1.BottomDockPanel.ShowDockPanel(true, self.DebugStackForm1);
-  //self.JvDockServer1.BottomDockPanel.ShowDockPanel(true, self.DebugVarForm1);
+  self.DebugBreakpointsForm1 := TDebugBreakpointsForm1.Create(self);
+  self.DebugBreakpointsForm1.OnBreakpointAdd := self.BreakpointAdd;
+  self.DebugBreakpointsForm1.OnBreakpointEdit := self.BreakpointEdit;
+  self.DebugBreakpointsForm1.OnBreakpointDelete := self.BreakpointDelete;
+  //self.DebugBreakpointsForm1.ManualDock(self.JvDockServer1.BottomDockPanel);
+  //self.JvDockServer1.BottomDockPanel.ShowDockPanel(true, self.DebugBreakpointsForm1);
+
+  ManualTabDock(self.JvDockServer1.BottomDockPanel, self.DebugStackForm1, self.DebugBreakpointsForm1);
 
   self.SetState(DbgpWinSocket.dsStopped);
 end;
@@ -155,12 +170,13 @@ procedure TNppDockingForm1.ServerSocket1GetSocket(Sender: TObject;
 begin
   ClientSocket := TDbgpWinSocket.Create(Socket,Sender as TServerWinSocket);
   self.sock := ClientSocket as TDbgpWinSocket;
-  self.sock.maps := (self.Npp as TDbgpNppPlugin).maps;
+  self.sock.maps := (self.Npp as TDbgpNppPlugin).config.maps;
   self.sock.OnDbgpStack := self.sockDbgpStack;
   self.sock.OnDbgpInit := self.sockDbgpInit;
   self.sock.OnDbgpEval := self.sockDbgpEval;
   self.sock.OnDbgpContext := self.sockDbgpContext;
   self.sock.OnDbgpBreak := self.sockDbgpBreak;
+  self.sock.OnDbgpBreakpoints := self.sockDbgpBreakpoints;
 end;
 
 procedure TNppDockingForm1.ServerSocket1ClientRead(Sender: TObject;
@@ -186,8 +202,10 @@ begin
   self.Label1.Caption := 'Disconnected...';
   self.sock := nil;
   self.DebugStackForm1.ClearStack;
+  self.ContextLocalForm1.ClearVars;
+  self.ContextGlobalForm1.ClearVars;
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
-  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 4, 0);
+  //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 4, 0);
   //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, SC_TIME_FOREVER,0);
 
   self.SetState(dsStopped);
@@ -197,13 +215,15 @@ procedure TNppDockingForm1.sockDbgpStack(Sender: TDbgpWinSocket; Stack: TStackLi
 begin
   self.DebugStackForm1.SetStack(Stack);
   if (Length(Stack)>0) {and (Stack[0].stacktype = 'file')} then
-    GotoLineCB(Stack[0].filename, Stack[0].lineno);
+    GotoLine(Stack[0].filename, Stack[0].lineno);
 
   // Do something usefull with this...
   //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, 1000,0);
 end;
 
 procedure TNppDockingForm1.sockDbgpInit(Sender: TDbgpWinSocket; init: TInit);
+var
+  i: integer;
 begin
   self.SetState(DbgpWinSocket.dsStarting);
   self.sock.SetFeature('max_depth','3'); // make configurable
@@ -215,17 +235,32 @@ begin
     //self.sock.SetFeature('notify_ok', '1'); // unsupported by xdebug
   end;
   }
+  for i:=0 to Length(self.DebugBreakpointsForm1.breakpoints)-1 do
+  begin
+    self.sock.SetBreakpoint(self.DebugBreakpointsForm1.breakpoints[i]);
+  end;
+  self.sock.GetBreakpoints;
 end;
 
 // callback.. much less code than events.. lazy ass... q:)
 // Fix this..
-procedure TNppDockingForm1.GotoLineCB(filename: string; Lineno: Integer);
+procedure TNppDockingForm1.GotoLine(filename: string; Lineno: Integer);
+var
+  i: integer;
 begin
   // @todo: create some helper functions in NppPlugin
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
   self.Npp.DoOpen(filename, lineno-1);
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, lineno-1, 5);
+  // redraw all line breakpoints
+  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 4, 0);
+  for i := 0 to Length(self.DebugBreakpointsForm1.breakpoints)-1 do
+  begin
+    if (self.DebugBreakpointsForm1.breakpoints[i].breakpointtype <> btLine) then continue;
+    if (self.DebugBreakpointsForm1.breakpoints[i].filename <> filename) then continue;
+    SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, self.DebugBreakpointsForm1.breakpoints[i].lineno-1, 4);
+  end;
 end;
 
 procedure TNppDockingForm1.sockDbgpContext(Sender: TDbgpWinSocket;
@@ -248,6 +283,13 @@ begin
   x.Show;
   self.Npp.RegisterForm(TForm(x));
 end;
+
+procedure TNppDockingForm1.sockDbgpBreakpoints(Sender: TDbgpWinSocket;
+  breakpoints: TBreakpoints);
+begin
+  self.DebugBreakpointsForm1.SetBreakpoints(breakpoints);
+end;
+
 
 procedure TNppDockingForm1.DoResume(runtype: TRun);
 begin
@@ -296,6 +338,10 @@ begin
   begin
     Sender.GetStack;
     self.SetState(DbgpWinSocket.dsBreak);
+    // update stuff
+    self.sock.GetBreakpoints;
+    if (self.Npp as TDbgpNppPlugin).config.refresh_local then self.sock.GetContext(0);
+    if (self.Npp as TDbgpNppPlugin).config.refresh_remote then self.sock.GetContext(1);
   end
   else
   begin
@@ -350,9 +396,32 @@ procedure TNppDockingForm1.BitBtnBreakpointClick(Sender: TObject);
 var
   s: string;
   i: integer;
+  bp: TBreakpoint;
 begin
   self.Npp.GetFileLine(s,i);
-  self.sock.SetBreakpoint(s,i+1);
+  if (self.state in [dsStarting, dsBreak]) then
+  begin
+    self.sock.SetBreakpoint(s,i+1);
+    self.sock.GetBreakpoints;
+  end
+  else
+  begin
+    bp.id := '';
+    bp.breakpointtype := btLine;
+    bp.filename := s;
+    bp.lineno := i+1;
+    bp.state := true;
+    bp.functionname := '';
+    bp.classname := '';
+    bp.temporary := false;
+    bp.hit_count := 0;
+    bp.hit_value := 0;
+    bp.hit_condition := '>=';
+    bp.exception := '';
+    bp.expression := '';
+    self.DebugBreakpointsForm1.AddBreakpoint(bp);
+  end;
+
   // @todo: create some helper functions in NppPlugin
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, i, 4);
 end;
@@ -388,6 +457,8 @@ procedure TNppDockingForm1.SetState(state: TDbgpState);
 var
   stepping, evaling, breaking: boolean;
 begin
+  self.state := state;
+
   stepping := false; evaling := false; breaking := false;
 
   case state of
@@ -397,6 +468,8 @@ begin
   //dsRunning:
   dsBreak: begin stepping := true; evaling := true; breaking := true; end;
   end;
+
+  breaking := true; { always true, bp child }
 
   self.BitBtnStepInto.Enabled := stepping;
   self.BitBtnStepOver.Enabled := stepping;
@@ -437,6 +510,41 @@ begin
 end;
 }
 
+{ breakpoint editing hooks }
+procedure TNppDockingForm1.BreakpointAdd(Sender: TComponent;
+  bp: TBreakpoint);
+begin
+  if Assigned(self.sock) and (self.state <> dsStopped) then
+  begin
+    self.sock.SetBreakpoint(bp);
+    self.sock.GetBreakpoints;
+  end;
+end;
 
+procedure TNppDockingForm1.BreakpointDelete(Sender: TComponent;
+  bp: TBreakpoint);
+begin
+  if Assigned(self.sock) and (self.state <> dsStopped) then
+  begin
+    self.sock.RemoveBreakpoint(bp);
+    self.sock.GetBreakpoints;
+  end;
+end;
+
+procedure TNppDockingForm1.BreakpointEdit(Sender: TComponent;
+  bp: TBreakpoint);
+begin
+  if Assigned(self.sock) and (self.state <> dsStopped) then
+  begin
+    self.sock.UpdateBreakpoint(bp);
+    self.sock.GetBreakpoints;
+  end;
+end;
+
+procedure TNppDockingForm1.StackSelect(Sender: TObject; filename: String;
+  lineno: integer);
+begin
+  self.GotoLine(filename, lineno);
+end;
 
 end.

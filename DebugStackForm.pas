@@ -28,6 +28,7 @@ uses
 
 type
   TGetContextCB = procedure(Sender: TObject; Depth: Integer) of Object;
+  TStackSelectCB = procedure(Sender: TObject; filename: String; lineno: integer) of Object;
   TDebugStackForm1 = class(TForm)
     VirtualStringTree1: TVirtualStringTree;
     JvDockClient1: TJvDockClient;
@@ -43,12 +44,14 @@ type
   private
     { Private declarations }
     FOnGetContext: TGetContextCB;
+    FOnStackSelect: TStackSelectCB;
   public
     { Public declarations }
     procedure SetStack(Stack: TStackList);
     procedure ClearStack;
   published
     property OnGetContext: TGetContextCB read FOnGetContext write FOnGetContext;
+    property OnStackSelect: TStackSelectCB read FOnStackSelect write FOnStackSelect;
   end;
 
 var
@@ -116,10 +119,7 @@ begin
   if (self.VirtualStringTree1.FocusedNode = nil) then exit;
   si := self.VirtualStringTree1.GetNodeData(self.VirtualStringTree1.FocusedNode);
 
-//  si^.filename;
-//  si^.lineno;
-  TNppDockingForm1(self.Owner).GotoLineCB(si^.filename,si^.lineno);
-
+  if (Assigned(self.FOnStackSelect)) then self.FOnStackSelect(self, si^.filename, si^.lineno);
 end;
 
 procedure TDebugStackForm1.FormCreate(Sender: TObject);

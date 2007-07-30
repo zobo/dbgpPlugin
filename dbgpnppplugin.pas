@@ -31,13 +31,19 @@ uses
   Classes, Dialogs, IniFiles, DbgpWinSocket, Messages, AboutForm;
 
 type
+  TDbgpNppPluginConfig = record
+    maps: TMaps;
+    refresh_local: boolean;
+    refresh_remote: boolean;
+  end;
   TDbgpNppPlugin = class(TNppPlugin)
     private
       MainForm: TNppDockingForm1;
       ConfigForm: TConfigForm1;
       AboutForm: TAboutForm1;
     public
-      maps: TMaps;
+      //maps: TMaps;
+      config: TDbgpNppPluginConfig;
       constructor Create;
       destructor Destroy; override;
 
@@ -53,7 +59,7 @@ type
       procedure FuncEval;
       procedure FuncAbout;
       procedure ReadMaps(var maps: TMaps);
-      procedure WriteMaps(maps: TMaps);
+      procedure WriteMaps(conf: TDbgpNppPluginConfig);
 
   end;
 
@@ -187,7 +193,7 @@ begin
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  self.ReadMaps(self.maps);
+  self.ReadMaps(self.config.maps);
 end;
 
 
@@ -316,6 +322,7 @@ end;
 procedure TDbgpNppPlugin.ReadMaps(var maps: TMaps);
 var
   path: string;
+  tmp: string;
   ini: TIniFile;
   xmaps: TStringList;
   i: integer;
@@ -338,11 +345,16 @@ begin
     maps[i].Delimiter := ';';
     maps[i].DelimitedText := ini.ReadString('Mapping',xmaps[i],';;');
   end;
+
+  // ugly hack
+  self.config.refresh_local := ( ini.ReadString('Misc','refresh_local','0') = '1' );
+  self.config.refresh_remote := ( ini.ReadString('Misc','refresh_remote','0') = '1' );
+
   ini.Free;
   xmaps.Free;
 end;
 
-procedure TDbgpNppPlugin.WriteMaps(maps: TMaps);
+procedure TDbgpNppPlugin.WriteMaps(conf:TDbgpNppPluginConfig);
 var
   path: string;
   ini: TIniFile;
@@ -352,8 +364,8 @@ begin
   path := '';
   SetLength(path, 200);
   GetModuleFileName(0, PChar(path), 199);
-  path := Trim(path);
-  path := ExtractFileDir(Trim(path));
+  SetLength(path, StrLen(PChar(path)));
+  path := ExtractFileDir(path);
   path := path + '\plugins\Config\dbgp.ini';
 
   ini := TIniFile.Create(path);
@@ -367,16 +379,27 @@ begin
   end;
   xmaps.Free;
 
-  for i:=0 to Length(maps)-1 do
+  for i:=0 to Length(conf.maps)-1 do
   begin
-    if (maps[i][0] = '') and (maps[i][1] = '') and (maps[i][2] = '') and (maps[i][3] = '') then continue;
-    maps[i].Delimiter := ';';
-    ini.WriteString('Mapping','Map'+IntToStr(i),maps[i].DelimitedText);
+    if (conf.maps[i][0] = '') and (conf.maps[i][1] = '') and (conf.maps[i][2] = '') and (conf.maps[i][3] = '') then continue;
+    conf.maps[i].Delimiter := ';';
+    ini.WriteString('Mapping','Map'+IntToStr(i),conf.maps[i].DelimitedText);
   end;
+
+  if (conf.refresh_local) then
+    ini.WriteString('Misc','refresh_local','1')
+  else
+    ini.WriteString('Misc','refresh_local','0');
+
+  if (conf.refresh_remote) then
+    ini.WriteString('Misc','refresh_remote','1')
+  else
+    ini.WriteString('Misc','refresh_remote','0');
+
   ini.Free;
 
   // reread config
-  self.ReadMaps(self.maps);
+  self.ReadMaps(self.config.maps);
 
 end;
 

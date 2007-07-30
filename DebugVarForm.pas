@@ -49,6 +49,7 @@ type
     Npp: TNppPlugin;
     procedure UseMenu(x: Boolean);
     procedure SetVars(list: TPropertyItems);
+    procedure ClearVars;
   published
     property OnRefresh: TRefreshCB read FOnRefresh write FOnRefresh;
   end;
@@ -165,6 +166,11 @@ procedure TDebugVarForm1.Refres1Click(Sender: TObject);
 begin
   if (Assigned(FOnRefresh)) then
     self.FOnRefresh(self);
+end;
+
+procedure TDebugVarForm1.ClearVars;
+begin
+  self.VirtualStringTree1.Clear;
 end;
 
 end.

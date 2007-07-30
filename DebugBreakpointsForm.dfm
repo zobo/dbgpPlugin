@@ -1,10 +1,10 @@
-object DebugStackForm1: TDebugStackForm1
+object DebugBreakpointsForm1: TDebugBreakpointsForm1
   Left = 776
   Top = 112
   Width = 264
   Height = 206
   BorderStyle = bsSizeToolWin
-  Caption = 'Stack'
+  Caption = 'Breakpoints'
   Color = clBtnFace
   DockSite = True
   DragKind = dkDock
@@ -16,7 +16,6 @@ object DebugStackForm1: TDebugStackForm1
   Font.Style = []
   FormStyle = fsStayOnTop
   OldCreateOrder = False
-  OnClose = FormClose
   OnCreate = FormCreate
   DesignSize = (
     256
@@ -41,39 +40,33 @@ object DebugStackForm1: TDebugStackForm1
     PopupMenu = PopupMenu1
     ShowHint = True
     TabOrder = 0
-    TreeOptions.PaintOptions = [toShowButtons, toShowDropmark, toShowRoot, toThemeAware, toUseBlendedImages]
+    TreeOptions.PaintOptions = [toShowButtons, toShowDropmark, toThemeAware, toUseBlendedImages]
     TreeOptions.SelectionOptions = [toFullRowSelect]
     TreeOptions.StringOptions = [toSaveCaptions]
-    OnDblClick = VirtualStringTree1DblClick
     OnGetText = VirtualStringTree1GetText
     Columns = <
       item
         Options = [coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
         Position = 0
-        Width = 40
-        WideText = 'Level'
+        Width = 25
       end
       item
         Options = [coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
         Position = 1
-        Width = 250
-        WideText = 'File'
+        Width = 60
+        WideText = 'Type'
       end
       item
         Options = [coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
         Position = 2
-        Width = 40
-        WideText = 'Line'
+        Width = 200
+        WideText = 'Breakpoint data'
       end
       item
         Options = [coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
         Position = 3
-        WideText = 'Where'
-      end
-      item
-        Options = [coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
-        Position = 4
-        WideText = 'Type'
+        Width = 40
+        WideText = 'Hits'
       end>
   end
   object JvDockClient1: TJvDockClient
@@ -88,11 +81,20 @@ object DebugStackForm1: TDebugStackForm1
     Top = 24
   end
   object PopupMenu1: TPopupMenu
+    OnPopup = PopupMenu1Popup
     Left = 40
     Top = 24
-    object GetContext1: TMenuItem
-      Caption = 'GetContext'
-      OnClick = GetContext1Click
+    object Addbreakpoint1: TMenuItem
+      Caption = 'Add breakpoint...'
+      OnClick = Addbreakpoint1Click
+    end
+    object Editbreakpoint1: TMenuItem
+      Caption = 'Edit breakpoint...'
+      OnClick = Editbreakpoint1Click
+    end
+    object Removebreakpoint1: TMenuItem
+      Caption = 'Remove breakpoint'
+      OnClick = Removebreakpoint1Click
     end
   end
 end
