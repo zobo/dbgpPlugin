@@ -319,7 +319,6 @@ end;
 function TDbgpWinSocket.MapLocalToSource(Local: String): String;
 var
   i: integer;
-  s: String;
 begin
   Result := '';
   for i:=0 to self.source_files.Count-1 do
@@ -677,7 +676,6 @@ end;
 function TDbgpWinSocket.ProcessResponse_source: String;
 var
   ret: String;
-  s: String;
   f: TextFile;
 begin
 {

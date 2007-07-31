@@ -26,7 +26,7 @@ object AboutForm1: TAboutForm1
     Top = 8
     Width = 190
     Height = 13
-    Caption = 'DBGP Plugin v0.1 for Notepad++  v4.1+'
+    Caption = 'DBGP Plugin v0.2 for Notepad++  v4.1+'
   end
   object Label8: TLabel
     Left = 8

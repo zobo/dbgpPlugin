@@ -19,19 +19,19 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-I would say, evolving pre-0.1-a. q:)
+I would say, evolving pre-0.2-a. q:)
 
 FEATURES / TODOS
  
 + a dockable main form with child dialogs that dock
-/ configuration dialog
++ configuration dialog
 + stack child
 + properties child
 + context child
 + eval child
 + raw child (for debugging) 
-- breakpoint child
-/ breakpoint indicator (SCI)
++ breakpoint child
++ breakpoint indicator (SCI)
 + tracing command (step into, over, out, run)
 + tracing indicator (SCI)
 - fast eval on mouse dwell (or at least some help with evaling)
@@ -43,9 +43,10 @@ FEATURES / TODOS
 - run to cursor
 - DBGp proxy support
 + file mapping (server ip based)
-/ dbgp error processing...
-/ interface for getting local context on depth (maybe on the stack child, and floating?)
++ dbgp error processing...
++ interface for getting local context on depth (on stack child)
 - a Manual!!
++ SOURCE support
 
 ( - todo, / started, + done, ? don't know if I'll do it )
 
@@ -54,7 +55,7 @@ INSTALL
 Just drop the dbgpPlugin.dll into you Notepad++ plugins directory.
 Note: This plugin uses a set of shortcuts for debugging actions (run, eval,
 step...) that were taken from Delphi. F9 that is used for "Run" conflicts
-with a command from ConvertExt plugin. Also F7 could also conflict if it is
+with a command from ConvertExt plugin. Also F7 could conflict if it is
 enabled.
 
 USAGE
@@ -79,15 +80,23 @@ Remote IP   IDE KEY     Remote Path   Local Path
 The first one is a classic mapping for a remote *nix box, while the second is a
 windows server. Local development should work right away, but if there are problems
 a dialog will pop up with some information. 
+In 0.2 a "Local path" constant was added. If it's "DBGP:" then the file will be
+fetched via the SOURCE command.
+
+New options have been added in 0.2. The fetch local or remote context on every step
+fetch local or remote contexts on every break respectively.
+The use "SOURCE" command bypasses the mapping altogether and gets all files over
+the dbgp protocol.
 
 Debugger
 When the debugger is started a dialog is docked at the bottom part of N++. It can
 be floated and attached elsewhere, but I think this is the best place for it. This
 dialog is used to dock other child dialogs. It also has a set of buttons that
 expose debugger commands. Currently, when started, a "Raw DBGP" form pops up.
+(Not as of 0.2)
 This can be used to send raw commands to the debugging engine and inspect the data
 send to the engine and back. Mostly for debugging, can be closed (but won’t currently unload).
-Right click to get a popup menu with "Clear" command.
+Right click to get a popup menu with "Clear" and "Copy" command.
 
 Debugging is started from the browser. I won’t go into this, but I do recommend
 the Firefox extension for starting XDebug sessions. When the debugging engine
@@ -101,22 +110,23 @@ Once connected and in a starting or break state you can step around using
 Step out, Step into, Step over and Run (Continue).
 
 Breakpoints
-Breakpoints are in very early development stage. You can only set breakpoints
-and they do not persist over sessions (even if the markers stay on the Editor,
-they are not there after a session ends. todo). Position the cursor on a line
-where you want the breakpoint and then push the breakpoint button. It is possible
-that the breakpoint isn’t valid, but the engine cannot report that back to us for now.
+As of 0.2 there is a breakpoint child window and a breakpoint button. Use the
+button to easily set a line breakpoint, right click the breakpoint child
+to set more advanced breakpoints. Breakpoints are persistent now (this means
+that they reside locally and get sent to the engine when it connects).
 
 Evaling
 When in a break state you can eval things. Ctrl+F7 will bring up the eval window.
 You can type in something like  $paramter1  or  mysql_error() . Just give it a spin.
+As of 0.2 the currently selected text or the word onder the cursor will be in
+the eval window.
 
 Context windows
 Currently contexts are refreshed on demand. Right click to get a popup menu and
 select refresh.
 Note: There is a small bug in XDebug so when refreshing global context you
-will get the response into the Local context window. The bug has been fixed;
-we just have to wait for the next RC.
+will get the response into the Local context window. The bug has been fixed in
+XDebug 2 release.
 
 Stack
 A stack is printed when stepping thru code. Double click on a row to go to that
