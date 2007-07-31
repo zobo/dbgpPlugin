@@ -4,7 +4,7 @@ object ConfigForm1: TConfigForm1
   BorderIcons = [biSystemMenu]
   BorderStyle = bsToolWindow
   Caption = 'DBGp configuration'
-  ClientHeight = 320
+  ClientHeight = 338
   ClientWidth = 497
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -62,7 +62,7 @@ object ConfigForm1: TConfigForm1
     Left = 0
     Top = 224
     Width = 497
-    Height = 57
+    Height = 73
     Caption = 'Misc'
     TabOrder = 1
     object CheckBox1: TCheckBox
@@ -81,10 +81,18 @@ object ConfigForm1: TConfigForm1
       Caption = 'Refresh global context on every step'
       TabOrder = 1
     end
+    object CheckBox3: TCheckBox
+      Left = 16
+      Top = 48
+      Width = 305
+      Height = 17
+      Caption = 'Use SOURCE command for all files and bypass maps'
+      TabOrder = 2
+    end
   end
   object Button3: TButton
     Left = 16
-    Top = 288
+    Top = 304
     Width = 75
     Height = 25
     Caption = 'Ok'

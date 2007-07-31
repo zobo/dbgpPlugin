@@ -171,6 +171,7 @@ begin
   ClientSocket := TDbgpWinSocket.Create(Socket,Sender as TServerWinSocket);
   self.sock := ClientSocket as TDbgpWinSocket;
   self.sock.maps := (self.Npp as TDbgpNppPlugin).config.maps;
+  self.sock.use_source := (self.Npp as TDbgpNppPlugin).config.use_source;
   self.sock.OnDbgpStack := self.sockDbgpStack;
   self.sock.OnDbgpInit := self.sockDbgpInit;
   self.sock.OnDbgpEval := self.sockDbgpEval;
@@ -215,7 +216,13 @@ procedure TNppDockingForm1.sockDbgpStack(Sender: TDbgpWinSocket; Stack: TStackLi
 begin
   self.DebugStackForm1.SetStack(Stack);
   if (Length(Stack)>0) {and (Stack[0].stacktype = 'file')} then
-    GotoLine(Stack[0].filename, Stack[0].lineno);
+  begin
+    // test hack
+    if (FileExists(Stack[0].filename)) then
+      GotoLine(Stack[0].filename, Stack[0].lineno)
+    else
+      self.sock.GetStack; // let the file get processed and ask for stack again.. this can go really bad!
+  end;
 
   // Do something usefull with this...
   //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, 1000,0);
@@ -242,15 +249,15 @@ begin
   self.sock.GetBreakpoints;
 end;
 
-// callback.. much less code than events.. lazy ass... q:)
-// Fix this..
 procedure TNppDockingForm1.GotoLine(filename: string; Lineno: Integer);
 var
   i: integer;
+  r: boolean;
 begin
   // @todo: create some helper functions in NppPlugin
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
-  self.Npp.DoOpen(filename, lineno-1);
+  r := self.Npp.DoOpen(filename, lineno-1);
+  if (not r) then exit;
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, lineno-1, 5);
   // redraw all line breakpoints
@@ -310,6 +317,7 @@ begin
     self.DebugEvalForm1 := TDebugEvalForm1.Create(self);
     self.Npp.RegisterForm(TForm(self.DebugEvalForm1));
   end;
+  self.DebugEvalForm1.ComboBox1.Text := self.Npp.GetWord;
   r := self.DebugEvalForm1.ShowModal;
   if (r = mrOk) then
   begin

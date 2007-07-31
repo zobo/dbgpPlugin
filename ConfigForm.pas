@@ -36,6 +36,7 @@ type
     CheckBox1: TCheckBox;
     CheckBox2: TCheckBox;
     Button3: TButton;
+    CheckBox3: TCheckBox;
     procedure Button1Click(Sender: TObject);
     procedure DeleteButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -93,6 +94,7 @@ begin
 
   self.CheckBox1.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_local;
   self.CheckBox2.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_remote;
+  self.CheckBox3.Checked := (self.Npp as TDbgpNppPlugin).config.use_source;
 end;
 
 
@@ -113,6 +115,8 @@ begin
   conf.maps := maps;
   conf.refresh_local := self.CheckBox1.Checked;
   conf.refresh_remote := self.CheckBox2.Checked;
+  conf.use_source := self.CheckBox3.Checked;
+  
   (self.Npp as TDbgpNppPlugin).WriteMaps(conf);
 
   self.Close;

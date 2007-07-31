@@ -35,6 +35,7 @@ type
     maps: TMaps;
     refresh_local: boolean;
     refresh_remote: boolean;
+    use_source: boolean;
   end;
   TDbgpNppPlugin = class(TNppPlugin)
     private
@@ -322,7 +323,6 @@ end;
 procedure TDbgpNppPlugin.ReadMaps(var maps: TMaps);
 var
   path: string;
-  tmp: string;
   ini: TIniFile;
   xmaps: TStringList;
   i: integer;
@@ -349,6 +349,7 @@ begin
   // ugly hack
   self.config.refresh_local := ( ini.ReadString('Misc','refresh_local','0') = '1' );
   self.config.refresh_remote := ( ini.ReadString('Misc','refresh_remote','0') = '1' );
+  self.config.use_source := ( ini.ReadString('Misc','use_source','0') = '1' );
 
   ini.Free;
   xmaps.Free;
@@ -395,6 +396,11 @@ begin
     ini.WriteString('Misc','refresh_remote','1')
   else
     ini.WriteString('Misc','refresh_remote','0');
+
+  if (conf.use_source) then
+    ini.WriteString('Misc','use_source','1')
+  else
+    ini.WriteString('Misc','use_source','0');
 
   ini.Free;
 

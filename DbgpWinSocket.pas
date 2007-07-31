@@ -103,6 +103,8 @@ type
     lastEval: String;
     init: TInit;
     remote_unix: boolean;
+    last_source_request: string;
+    source_files: TStringList;
   protected
     { Protected declarations }
     FOnDbgpStack: TStackCB;
@@ -114,6 +116,8 @@ type
     FOnDbgpBreakpoints: TBreakpointsCB;
     function MapRemoteToLocal(Remote:String): String;
     function MapLocalToRemote(Local:String): String;
+    function MapSourceToLocal(Source:String): String;
+    function MapLocalToSource(Local:String): String;
     function ProcessInit: String;
     function ProcessStream: String;
     function ProcessResponse_stack: String;
@@ -121,6 +125,7 @@ type
     function ProcessResponse_context_get: String;
     function ProcessResponse_breakpoint_set: String;
     function ProcessResponse_breakpoint_list: String;
+    function ProcessResponse_source: String;
     function ProcessResponse: String;
 
     procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems); overload;
@@ -128,6 +133,7 @@ type
   public
     { Public declarations }
     maps: TMaps;
+    use_source: boolean;
     debugdata: TStringList;
     stack: TStackList;
     Transaction_id: String;
@@ -145,7 +151,7 @@ type
     procedure SetBreakpoint(bp: TBreakpoint); overload;
     procedure UpdateBreakpoint(bp: TBreakpoint);
     procedure RemoveBreakpoint(bp: TBreakpoint);
-
+    procedure GetSource(filename: String);
     procedure Resume(runtype: TRun);
     procedure SendEval(data:String);
     function SendCommand(Cmd: String; Args: String; Base64:String): Integer; overload;
@@ -175,9 +181,20 @@ begin
   self.debugdata := TStringList.Create;
   self.Transaction_id := ''; // return transaction
   self.remote_unix := true;
+  self.source_files := TStringList.Create;
+  self.source_files.CaseSensitive := true;
 end;
 destructor TDbgpWinSocket.Destroy;
+var
+  i: integer;
 begin
+  self.debugdata.Free;
+  // delete the shit
+  for i := 0 to self.source_files.Count-1 do
+  begin
+    DeleteFile(self.MapSourceToLocal(self.source_files[i]));
+  end;
+  self.source_files.Free;
   inherited;
 end;
 
@@ -212,6 +229,12 @@ var
   i: integer;
   r: string;
 begin
+  r := self.MapLocalToSource(Local);
+  if (r <> '') then
+  begin
+    Result := r;
+    exit;
+  end;
   Result := 'file:///'+URLEncode(Local);
   if (not Assigned(self.maps)) then
   begin
@@ -243,8 +266,16 @@ function TDbgpWinSocket.MapRemoteToLocal(Remote: String): String;
 var
   i: integer;
   r: string;
+  Remote2: string;
 begin
   Remote := URLDecode(Remote);
+  Remote2 := Remote;
+  if (LeftStr(Remote, 5)='dbgp:') or (self.use_source) then
+  begin
+    r := self.MapSourceToLocal(Remote);
+    Result := r;
+    exit;
+  end;
   if (LeftStr(Remote, 8)='file:///') and (Pos(':',Remote)=10) then
   begin
     self.remote_unix := false;
@@ -267,6 +298,11 @@ begin
     if (self.maps[i][2] = LeftStr(Remote, Length(self.maps[i][2]))) then
     begin
       r := self.maps[i][3];
+      if (r = 'DBGP:') then
+      begin
+        Result := self.MapSourceToLocal(Remote2);
+        exit;
+      end;
       r := r + Copy(Remote, Length(self.maps[i][2])+1, MaxInt);
       if (self.remote_unix) then r := StringReplace(r, '/', '\', [rfReplaceAll]);
       Result := r;
@@ -274,7 +310,48 @@ begin
     end;
   end;
   // throw exception??
-  ShowMessage('Unable to map filename: '+Remote+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
+  //ShowMessage('Unable to map filename: '+Remote+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
+  // fallback to source
+  Result := self.MapSourceToLocal(Remote2);
+end;
+
+{ mappings for source command }
+function TDbgpWinSocket.MapLocalToSource(Local: String): String;
+var
+  i: integer;
+  s: String;
+begin
+  Result := '';
+  for i:=0 to self.source_files.Count-1 do
+  begin
+    if (Local = self.MapSourceToLocal(self.source_files[i])) then
+    begin
+      Result := self.source_files[i];
+      exit;
+    end;
+  end;
+end;
+
+function TDbgpWinSocket.MapSourceToLocal(Source: String): String;
+var
+  s: String;
+  source2: String;
+begin
+  Result := '';
+  s := '';
+  SetLength(s, 200);
+  GetTempPath(200, PChar(s));
+  SetLength(s, StrLen(PChar(s)));
+  source2 := UrlEncode(Source);
+  source2 := StringReplace(source2, '/', '%2f', [rfReplaceAll]);
+  source2 := StringReplace(source2, ':', '%3a', [rfReplaceAll]);
+  s := s + 'dbgp_' + source2;
+  if (self.source_files.IndexOf(Source)=-1) then
+  begin
+    self.source_files.Add(Source);
+    self.GetSource(Source);
+  end;
+  Result := s;
 end;
 
 { procesiramo init}
@@ -597,6 +674,35 @@ begin
   //Result := 'Stream('+str+'): '+data;
 end;
 
+function TDbgpWinSocket.ProcessResponse_source: String;
+var
+  ret: String;
+  s: String;
+  f: TextFile;
+begin
+{
+<?xml version="1.0" encoding="iso-8859-1"?>
+<response xmlns="urn:debugger_protocol_v1" xmlns:xdebug="http://xdebug.org/dbgp/xdebug"
+  command="source" transaction_id="77" encoding="base64">
+	<![CDATA[PD9waHANCg0KZW...cCgkY29kZSk7DQo=]]>
+</response>}
+  ret := '';
+
+  if (self.xml.ChildNodes[1].HasChildNodes) and (self.xml.ChildNodes[1].ChildNodes[0]<>nil) then
+    ret := self.xml.ChildNodes[1].ChildNodes[0].Text;
+
+  if (self.xml.ChildNodes[1].Attributes['encoding'] = 'base64') then ret := Decode64(ret);
+
+  if (self.last_source_request<>'') then
+  begin
+    AssignFile(f, self.MapSourceToLocal(self.last_source_request));
+    Rewrite(f);
+    WriteLn(f, ret);
+    CloseFile(f);
+    self.last_source_request := '';
+  end;
+end;
+
 // returnes the read data and does all processing...
 function TDbgpWinSocket.ReadDBGP: String;
 var
@@ -665,6 +771,8 @@ try
     r := self.ProcessResponse_breakpoint_set
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'breakpoint_list') then
     r := self.ProcessResponse_breakpoint_list
+    else if (self.xml.ChildNodes[1].Attributes['command'] = 'source') then
+    r := self.ProcessResponse_source
     else
     r := self.ProcessResponse;
   end
@@ -793,6 +901,13 @@ end;
 procedure TDbgpWinSocket.SetStream(Str: string; Mode: Integer);
 begin
   self.SendCommand(Str,'-c '+IntToStr(Mode));
+end;
+
+procedure TDbgpWinSocket.GetSource(filename: String);
+begin
+  // maps?
+  self.last_source_request := filename;
+  self.SendCommand('source', '-f '+filename);
 end;
 
 end.

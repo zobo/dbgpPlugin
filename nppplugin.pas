@@ -288,9 +288,10 @@ type
       procedure RegisterDockingForm(form: TForm{TNppDockingForm});
 
       // df
-      procedure DoOpen(filename: String); overload;
-      procedure DoOpen(filename: String; Line: Integer); overload;
+      function DoOpen(filename: String): boolean; overload;
+      function DoOpen(filename: String; Line: Integer): boolean; overload;
       procedure GetFileLine(var filename: String; var Line: Integer);
+      function GetWord: string;
 
   end;
 
@@ -355,15 +356,22 @@ begin
   inherited;
 end;
 
-procedure TNppPlugin.DoOpen(filename: String);
+function TNppPlugin.DoOpen(filename: String): boolean;
+var
+  r: integer;
 begin
-  SendMessage(self.NppData.NppHandle, WM_DOOPEN, 0, LPARAM(PChar(filename)));
+  r := SendMessage(self.NppData.NppHandle, WM_DOOPEN, 0, LPARAM(PChar(filename)));
+  Result := (r=0);
 end;
 
-procedure TNppPlugin.DoOpen(filename: String; Line: Integer);
+function TNppPlugin.DoOpen(filename: String; Line: Integer): boolean;
+var
+  r: boolean;
 begin
-  self.DoOpen(filename);
-  SendMessage(self.NppData.ScintillaMainHandle, SciSupport.SCI_GOTOLINE, Line,0);
+  r := self.DoOpen(filename);
+  if (r) then
+    SendMessage(self.NppData.ScintillaMainHandle, SciSupport.SCI_GOTOLINE, Line,0);
+  Result := r;
 end;
 
 procedure TNppPlugin.GetFileLine(var filename: String; var Line: Integer);
@@ -396,6 +404,15 @@ end;
 function TNppPlugin.GetName: PChar;
 begin
   Result := PChar(self.PluginName);
+end;
+
+function TNppPlugin.GetWord: string;
+var
+  s: string;
+begin
+  SetLength(s, 800);
+  SendMessage(self.NppData.NppHandle, WM_GET_CURRENTWORD,0,LPARAM(PChar(s)));
+  Result := s;
 end;
 
 procedure TNppPlugin.MessageProc(var Msg: TMessage);
