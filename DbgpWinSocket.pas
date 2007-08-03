@@ -47,6 +47,7 @@ type
     language: String;
     appid: String;
     idekey: String;
+    server: String;
   end;
   PPropertyItems = ^TPropertyItems;
   PPropertyItem = ^TPropertyItem;
@@ -242,7 +243,7 @@ begin
   end;
   for i:=0 to Length(self.maps)-1 do
   begin
-    if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.RemoteAddress) then continue;
+    if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.init.server) then continue;
     if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
     if (self.maps[i][3] = LeftStr(Local, Length(self.maps[i][3]))) then
     begin
@@ -259,7 +260,7 @@ begin
       exit;
     end;
   end;
-  ShowMessage('Unable to map filename: '+Local+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
+  ShowMessage('Unable to map filename: '+Local+' (ip: '+self.init.server+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
 end;
 
 function TDbgpWinSocket.MapRemoteToLocal(Remote: String): String;
@@ -293,7 +294,7 @@ begin
   end;
   for i:=0 to Length(self.maps)-1 do
   begin
-    if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.RemoteAddress) then continue;
+    if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.init.server) then continue;
     if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
     if (self.maps[i][2] = LeftStr(Remote, Length(self.maps[i][2]))) then
     begin
@@ -310,7 +311,7 @@ begin
     end;
   end;
   // throw exception??
-  //ShowMessage('Unable to map filename: '+Remote+' (ip: '+self.RemoteAddress+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
+  //ShowMessage('Unable to map filename: '+Remote+' (ip: '+self.init.server+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
   // fallback to source
   Result := self.MapSourceToLocal(Remote2);
 end;
@@ -355,8 +356,6 @@ end;
 
 { procesiramo init}
 function TDbgpWinSocket.ProcessInit: String;
-var
-  init: TInit;
 begin
 {
 Data(404): <?xml version="1.0" encoding="iso-8859-1"?>
@@ -376,16 +375,15 @@ Data(404): <?xml version="1.0" encoding="iso-8859-1"?>
 
 </init>
 }
-  init.language := self.xml.ChildNodes[1].Attributes['language'];
-  init.appid := self.xml.ChildNodes[1].Attributes['appid'];
-  init.idekey := self.xml.ChildNodes[1].Attributes['idekey'];
+  self.init.language := self.xml.ChildNodes[1].Attributes['language'];
+  self.init.appid := self.xml.ChildNodes[1].Attributes['appid'];
+  self.init.idekey := self.xml.ChildNodes[1].Attributes['idekey'];
+  self.init.server := self.xml.ChildNodes[1].Attributes['proxied'];
+  if (self.init.server = '') then self.init.server := self.RemoteAddress;
   self.init := init; // need idekey before we can translate files...
-  init.filename := self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
-  self.init := init;
+  self.init.filename := self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
 
-  if (Assigned(self.FOnDbgpInit)) then self.FOnDbgpInit(self, init);
-
-  //Result := 'init file: '+self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
+  if (Assigned(self.FOnDbgpInit)) then self.FOnDbgpInit(self, self.init);
 end;
 
 { splisna funkcija za rekurzivno procesiranje varov}

@@ -200,7 +200,9 @@ end;
 
 destructor TDbgpNppPlugin.Destroy;
 begin
-  ShowMessage('dbgpplugin.destroy');
+  //if (Assigned(self.MainForm)) then self.MainForm.Close;
+  // this is really bad! I'd rather use close...
+  if (Assigned(self.MainForm)) then self.MainForm.Free;
   inherited;
 end;
 

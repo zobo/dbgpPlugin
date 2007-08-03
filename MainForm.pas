@@ -89,6 +89,7 @@ type
     DebugEvalForm1: TDebugEvalForm1;
     DebugRawForm1: TDebugRawForm1;
     DebugBreakpointsForm1: TDebugBreakpointsForm1;
+    destructor Destroy; override;
     procedure GotoLine(filename: string; Lineno:Integer);
     procedure DoResume(runtype: TRun);
     procedure DoEval; overload;
@@ -105,6 +106,13 @@ implementation
 
 {$R *.dfm}
 uses dbgpnppplugin, nppplugin, SciSupport;
+
+destructor TNppDockingForm1.Destroy;
+begin
+  if (Assigned(self.sock)) then self.sock.Close;
+  if (self.ServerSocket1.Active) then self.ServerSocket1.Close;
+  inherited;
+end;
 
 procedure TNppDockingForm1.FormCreate(Sender: TObject);
 begin
@@ -234,7 +242,7 @@ var
 begin
   self.SetState(DbgpWinSocket.dsStarting);
   self.sock.SetFeature('max_depth','3'); // make configurable
-  self.Label1.Caption := 'Connected to '+self.sock.RemoteAddress+' idekey: '+init.idekey+' file: '+init.filename;
+  self.Label1.Caption := 'Connected to '+init.server+' idekey: '+init.idekey+' file: '+init.filename;
   {
   if Assigned(self.sock) then
   begin

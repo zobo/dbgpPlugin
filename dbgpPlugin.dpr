@@ -56,6 +56,7 @@ begin
   end;
   DLL_PROCESS_DETACH:
   begin
+    Npp.Destroy;
   end;
   //DLL_THREAD_ATTACH: MessageBeep(0);
   //DLL_THREAD_DETACH: MessageBeep(0);
