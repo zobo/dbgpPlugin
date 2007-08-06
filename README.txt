@@ -41,7 +41,7 @@ FEATURES / TODOS
 / NL convert (needs tweaking)
 / toolbar icons (step into, over, out, run, add (remove) breakpoint, child icons?)
 - run to cursor
-- DBGp proxy support
+/ DBGp proxy support
 + file mapping (server ip based)
 + dbgp error processing...
 + interface for getting local context on depth (on stack child)
@@ -86,7 +86,8 @@ fetched via the SOURCE command.
 New options have been added in 0.2. The fetch local or remote context on every step
 fetch local or remote contexts on every break respectively.
 The use "SOURCE" command bypasses the mapping altogether and gets all files over
-the dbgp protocol.
+the dbgp protocol. Additionally as of 0.2 if the file cannot be mapped the system
+falls back to SOURCE retrieval, no more error box.
 
 Debugger
 When the debugger is started a dialog is docked at the bottom part of N++. It can
@@ -118,13 +119,14 @@ that they reside locally and get sent to the engine when it connects).
 Evaling
 When in a break state you can eval things. Ctrl+F7 will bring up the eval window.
 You can type in something like  $paramter1  or  mysql_error() . Just give it a spin.
-As of 0.2 the currently selected text or the word onder the cursor will be in
+As of 0.2 the currently selected text or the word under the cursor will be in
 the eval window.
 
 Context windows
-Currently contexts are refreshed on demand. Right click to get a popup menu and
-select refresh.
-Note: There is a small bug in XDebug so when refreshing global context you
+Contexts can be refreshed on demand and as of 0.2 a configuration option is
+available so that they can be refreshed on every step. Right click to get a
+popup menu and select refresh.
+Note: There is a small bug in pre 2 XDebug so when refreshing global context you
 will get the response into the Local context window. The bug has been fixed in
 XDebug 2 release.
 

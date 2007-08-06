@@ -1,9 +1,10 @@
-2007-07-31 v0.2 alpha
+2007-08-06 v0.2 alpha
 
 Added handling for SOURCE command.
 Persistant breakpoints, and breakpoint child.
 Option to auto-get local or remote context.
 Optioinal DBGP: mapping.
+Protocol level support for dbgp proxy.
 
 2007-06-24 v0.1 alpha
 

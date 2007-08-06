@@ -193,6 +193,7 @@ begin
   // delete the shit
   for i := 0 to self.source_files.Count-1 do
   begin
+    FileSetReadOnly(self.MapSourceToLocal(self.source_files[i]),false);
     DeleteFile(self.MapSourceToLocal(self.source_files[i]));
   end;
   self.source_files.Free;
@@ -695,6 +696,7 @@ begin
     Rewrite(f);
     WriteLn(f, ret);
     CloseFile(f);
+    FileSetReadOnly(self.MapSourceToLocal(self.last_source_request), true);
     self.last_source_request := '';
   end;
 end;
