@@ -1,3 +1,7 @@
+2007-08-10 v0.3 alpha
+
+A few bug fixes.
+
 2007-08-06 v0.2 alpha
 
 Added handling for SOURCE command.
