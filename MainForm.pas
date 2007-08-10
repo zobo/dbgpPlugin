@@ -163,6 +163,7 @@ end;
 procedure TNppDockingForm1.ServerSocket1Accept(Sender: TObject;
   Socket: TCustomWinSocket);
 begin
+  self.SetState(DbgpWinSocket.dsStopped);
   FlashWindow(self.Npp.NppData.NppHandle, true);
   self.Show;
 
@@ -170,7 +171,6 @@ begin
   begin
     self.DebugRawForm1.Memo1.Lines.Add('Accept: '+Socket.RemoteAddress);
   end;
-  self.SetState(DbgpWinSocket.dsStopped);
 end;
 
 procedure TNppDockingForm1.ServerSocket1GetSocket(Sender: TObject;

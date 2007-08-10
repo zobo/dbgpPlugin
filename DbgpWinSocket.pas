@@ -194,7 +194,7 @@ begin
   for i := 0 to self.source_files.Count-1 do
   begin
     FileSetReadOnly(self.MapSourceToLocal(self.source_files[i]),false);
-    DeleteFile(self.MapSourceToLocal(self.source_files[i]));
+    //DeleteFile(self.MapSourceToLocal(self.source_files[i]));
   end;
   self.source_files.Free;
   inherited;
@@ -592,10 +592,10 @@ begin
   end;
 
   self.ProcessProperty(self.xml.ChildNodes[1].ChildNodes, list);
-  context := 0;
   try
     context := StrToInt(self.xml.ChildNodes[1].Attributes['context']);
   except
+    on EConvertError do context := 0;
   end;
   if (Assigned(self.FOnDbgpContext)) then
     self.FOnDbgpContext(self,context,list);
@@ -692,6 +692,7 @@ begin
 
   if (self.last_source_request<>'') then
   begin
+    FileSetReadOnly(self.MapSourceToLocal(self.last_source_request), false);
     AssignFile(f, self.MapSourceToLocal(self.last_source_request));
     Rewrite(f);
     WriteLn(f, ret);
@@ -709,16 +710,24 @@ var
 begin
   s := self.ReceiveText;
   s := self.buffer + s;
+  
+  if (Length(s) = 0) then exit;
+
   if (s[Length(s)] <> #0) then // message not yet complete... return and wait for better times
   begin
     self.buffer := s;
     exit;
   end;
 
-  len := StrToInt(s);
+  try
+    len := StrToInt(s);
+  except
+    on EConvertError do len := 0; // hum.. protocol error?
+  end;
+
   if (Length(s)<len) then
   begin
-    // Should not happen.. something is wronf with the message
+    // Should not happen.. something is wrong with the message
     self.debugdata.Add('Error in len: '+IntToStr(Length(s))+'<'+IntToStr(len)+': '+s);
     exit;
   end;

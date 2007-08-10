@@ -19,7 +19,7 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-I would say, evolving pre-0.2-a. q:)
+I would say, evolving pre-0.3-a. q:)
 
 FEATURES / TODOS
  
