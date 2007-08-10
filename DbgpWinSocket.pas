@@ -262,6 +262,7 @@ begin
     end;
   end;
   ShowMessage('Unable to map filename: '+Local+' (ip: '+self.init.server+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
+  Result := '';
 end;
 
 function TDbgpWinSocket.MapRemoteToLocal(Remote: String): String;
@@ -747,19 +748,19 @@ begin
   self.xml.XML.Add(s2);
   self.xml.Active := true;
 
+  s := '';
 try
   res := self.xml.ChildNodes[1].NodeName;
   // handle error?
   if (self.xml.ChildNodes[1].HasChildNodes) and (self.xml.ChildNodes[1].ChildNodes[0].NodeName = 'error') then
   begin
   // better to do an onDbgpError!
-    raise Exception.Create('DBGP Error: '+
+    s := 'DBGP Error: '+
       'Response type: '+res+' '+
       'Command: '+self.xml.ChildNodes[1].Attributes['command']+' '+
       'Error code: '+self.xml.ChildNodes[1].ChildNodes[0].Attributes['code']+' '+
       'Error: '+self.xml.ChildNodes[1].ChildNodes[0].Attributes['apperr']+' '+
-      'Error message: '+self.xml.ChildNodes[1].ChildNodes[0].ChildNodes[0].ChildNodes[0].Text
-    );
+      'Error message: '+self.xml.ChildNodes[1].ChildNodes[0].ChildNodes[0].ChildNodes[0].Text;
   end;
   if (res = 'init') then
   begin
@@ -790,8 +791,10 @@ try
   begin
     r := self.ProcessStream;
   end;
+
+  if (s<>'') then ShowMessage(s);
 finally
-  self.xml.Active := false;
+  if (self.xml<>nil) then self.xml.Active := false;
   self.xml := nil;
 end;
   if (self.buffer<>'') then self.ReadDBGP;
@@ -850,14 +853,18 @@ begin
 end;
 
 procedure TDbgpWinSocket.SetBreakpoint(Filename: String; Line: Integer);
+var
+  s: string;
 begin
-  self.SendCommand('breakpoint_set', '-t line -f '+self.MapLocalToRemote(Filename)+
-    ' -n '+IntToStr(Line));
+  s := self.MapLocalToRemote(Filename);
+  if (s='') then exit;
+  self.SendCommand('breakpoint_set', '-t line -f '+s+' -n '+IntToStr(Line));
 end;
 
 procedure TDbgpWinSocket.SetBreakpoint(bp: TBreakpoint);
 var
   cmd: String;
+  s: string;
 begin
   case (bp.breakpointtype) of
     btLine: cmd := '-t line';
@@ -867,7 +874,9 @@ begin
   end;
   if (bp.filename <> '') then
   begin
-    cmd := cmd + ' -f '+self.MapLocalToRemote(bp.filename);
+    s := self.MapLocalToRemote(bp.filename);
+    if (s='') then exit; // do not map
+    cmd := cmd + ' -f '+s;
     cmd := cmd + ' -n '+IntToStr(bp.lineno);
   end;
   if (bp.state) then cmd := cmd + ' -s enabled' else cmd := cmd + ' -s disabled';

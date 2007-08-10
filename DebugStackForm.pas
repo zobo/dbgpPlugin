@@ -41,6 +41,7 @@ type
     procedure VirtualStringTree1DblClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure GetContext1Click(Sender: TObject);
+    procedure PopupMenu1Popup(Sender: TObject);
   private
     { Private declarations }
     FOnGetContext: TGetContextCB;
@@ -143,6 +144,15 @@ begin
   if (Assigned(self.FOnGetContext)) then
   begin
     self.FOnGetContext(self, si^.level);
+  end;
+end;
+
+procedure TDebugStackForm1.PopupMenu1Popup(Sender: TObject);
+begin
+  self.GetContext1.Enabled := true;
+  if (self.VirtualStringTree1.FocusedNode = nil) then
+  begin
+    self.GetContext1.Enabled := false;
   end;
 end;
 

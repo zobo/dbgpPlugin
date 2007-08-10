@@ -88,6 +88,7 @@ object DebugStackForm1: TDebugStackForm1
     Top = 24
   end
   object PopupMenu1: TPopupMenu
+    OnPopup = PopupMenu1Popup
     Left = 40
     Top = 24
     object GetContext1: TMenuItem
