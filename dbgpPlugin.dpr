@@ -27,6 +27,7 @@ uses
   Windows,
   Dialogs,
   Messages,
+  Forms,
   nppplugin in 'nppplugin.pas',
   dbgpnppplugin in 'dbgpnppplugin.pas',
   scisupport in 'SciSupport.pas',
@@ -42,7 +43,8 @@ uses
   DebugRawForm in 'DebugRawForm.pas' {DebugRawForm1},
   AboutForm in 'AboutForm.pas' {AboutForm1},
   DebugBreakpointsForm in 'DebugBreakpointsForm.pas' {DebugBreakpointsForm1},
-  DebugBreakpointEditForm in 'DebugBreakpointEditForm.pas' {DebugBreakpointEditForm1};
+  DebugBreakpointEditForm in 'DebugBreakpointEditForm.pas' {DebugBreakpointEditForm1},
+  NppForms in 'NppForms.pas' {NppForm};
 
 {$R *.res}
 
@@ -56,6 +58,7 @@ begin
   end;
   DLL_PROCESS_DETACH:
   begin
+    Application.Terminate;
     Npp.Destroy;
   end;
   //DLL_THREAD_ATTACH: MessageBeep(0);

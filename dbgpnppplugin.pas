@@ -59,6 +59,7 @@ type
       procedure FuncRun;
       procedure FuncEval;
       procedure FuncAbout;
+      procedure FuncBreakpoint;
       procedure ReadMaps(var maps: TMaps);
       procedure WriteMaps(conf: TDbgpNppPluginConfig);
 
@@ -74,6 +75,7 @@ procedure _FuncStepOut; cdecl;
 procedure _FuncRun; cdecl;
 procedure _FuncEval; cdecl;
 procedure _FuncAbout; cdecl;
+procedure _FuncBreakpoint; cdecl;
 
 implementation
 
@@ -84,7 +86,7 @@ uses Windows,Graphics,SysUtils;
 
 procedure TDbgpNppPlugin.BeNotified(sn: PSCNotification);
 var
-  x:TToolbarIcons;
+  x:^TToolbarIcons;
 begin
   if (sn^.nmhdr.code = SCN_DWELLSTART) then
   begin
@@ -96,10 +98,11 @@ begin
   if (HWND(sn^.nmhdr.hwndFrom) = self.NppData.NppHandle) then
     if (sn^.nmhdr.code = NPPN_TB_MODIFICATION) then
     begin
-
+      New(x);
       // test za toolbar
-      x.ToolbarBmp := LoadImage(Hinstance, 'IDB_DBGP_TEST', IMAGE_BITMAP, 0, 0, (LR_DEFAULTSIZE or LR_LOADMAP3DCOLORS));
-      SendMessage(Npp.NppData.NppHandle, WM_ADDTOOLBARICON, self.FuncArray[0].CmdID, LPARAM(@x));
+      x^.ToolbarIcon := 0;
+      x^.ToolbarBmp := LoadImage(Hinstance, 'IDB_DBGP_TEST', IMAGE_BITMAP, 0, 0, (LR_DEFAULTSIZE or LR_LOADMAP3DCOLORS));
+      SendMessage(Npp.NppData.NppHandle, WM_ADDTOOLBARICON, self.FuncArray[0].CmdID, LPARAM(x));
     end;
 end;
 
@@ -110,7 +113,7 @@ var
 begin
   inherited;
   // Setup menu items
-  SetLength(self.FuncArray,12);
+  SetLength(self.FuncArray,13);
 
   // #112 = F1... pojma nimam od kje...
   self.PluginName := 'DBGp';
@@ -172,6 +175,14 @@ begin
   sk.Key := #118; // Ctrl+F7
   inc(i);
 
+  StrCopy(self.FuncArray[i].ItemName, 'Toggle Breakpoint');
+  self.FuncArray[i].Func := _FuncBreakpoint;
+  New(self.FuncArray[i].ShortcutKey);
+  sk := self.FuncArray[i].ShortcutKey;
+  sk.IsCtrl := true; sk.IsAlt := false; sk.IsShift := false;
+  sk.Key := #120; // Ctrl+F9
+  inc(i);
+
   // add stack and context items...
 
   StrCopy(self.FuncArray[i].ItemName, '-');
@@ -200,9 +211,7 @@ end;
 
 destructor TDbgpNppPlugin.Destroy;
 begin
-  //if (Assigned(self.MainForm)) then self.MainForm.Close;
-  // this is really bad! I'd rather use close...
-  if (Assigned(self.MainForm)) then self.MainForm.Free;
+  if (Assigned(self.MainForm)) then self.MainForm.Close;
   inherited;
 end;
 
@@ -253,12 +262,15 @@ procedure _FuncAbout; cdecl;
 begin
   Npp.FuncAbout;
 end;
+procedure _FuncBreakpoint; cdecl;
+begin
+  Npp.FuncBreakpoint;
+end;
 
 procedure TDbgpNppPlugin.FuncAbout;
 begin
   self.AboutForm := TAboutForm1.Create(self);
   self.AboutForm.DlgId := self.FuncArray[11].CmdID;
-  self.RegisterForm(TForm(self.AboutForm));
   self.AboutForm.Hide;
   self.AboutForm.ShowModal;
 end;
@@ -266,16 +278,21 @@ end;
 procedure TDbgpNppPlugin.FuncConfig;
 begin
   self.ConfigForm := TConfigForm1.Create(self);
-  self.ConfigForm.DlgId := self.FuncArray[9].CmdID;
-  self.RegisterForm(TForm(self.ConfigForm));
+  //self.ConfigForm.DlgId := self.FuncArray[9].CmdID;
   self.ConfigForm.Hide;
   self.ConfigForm.ShowModal;
+  self.ConfigForm := nil;
 end;
 
 procedure TDbgpNppPlugin.FuncEval;
 begin
   // show eval dlg...
   if (Assigned(self.MainForm)) then self.MainForm.DoEval;
+end;
+
+procedure TDbgpNppPlugin.FuncBreakpoint;
+begin
+  if (Assigned(self.MainForm)) and (self.MainForm.BitBtnBreakpoint.Enabled) then self.MainForm.BitBtnBreakpointClick(nil);
 end;
 
 procedure TDbgpNppPlugin.FuncRun;
@@ -316,9 +333,8 @@ begin
   hm := GetMenu(self.NppData.NppHandle);
   ModifyMenu(hm, self.FuncArray[1].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
   ModifyMenu(hm, self.FuncArray[6].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
-  ModifyMenu(hm, self.FuncArray[8].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
-  ModifyMenu(hm, self.FuncArray[10].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
-
+  ModifyMenu(hm, self.FuncArray[9].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
+  ModifyMenu(hm, self.FuncArray[11].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
   end;
 end;
 

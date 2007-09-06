@@ -15,7 +15,6 @@ object ConfigForm1: TConfigForm1
   OldCreateOrder = False
   Position = poDefault
   Visible = True
-  OnClose = FormClose
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13

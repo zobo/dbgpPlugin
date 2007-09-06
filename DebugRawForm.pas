@@ -23,10 +23,10 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, JvComponentBase, JvDockControlForm, StdCtrls, Menus, Clipbrd;
+  Dialogs, JvComponentBase, JvDockControlForm, StdCtrls, Menus, Clipbrd, NppDockingForm;
 
 type
-  TDebugRawForm1 = class(TForm)
+  TDebugRawForm1 = class(TNppDockingForm)
     JvDockClient1: TJvDockClient;
     Memo1: TMemo;
     Button1: TButton;

@@ -15,7 +15,6 @@ object DebugRawForm1: TDebugRawForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  FormStyle = fsStayOnTop
   OldCreateOrder = False
   DesignSize = (
     307

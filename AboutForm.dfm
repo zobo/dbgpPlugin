@@ -7,7 +7,7 @@ object AboutForm1: TAboutForm1
   BorderStyle = bsDialog
   BorderWidth = 1
   Caption = 'About'
-  ClientHeight = 310
+  ClientHeight = 328
   ClientWidth = 252
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,7 +15,6 @@ object AboutForm1: TAboutForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  FormStyle = fsStayOnTop
   OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
@@ -72,14 +71,14 @@ object AboutForm1: TAboutForm1
   end
   object Label22: TLabel
     Left = 8
-    Top = 264
+    Top = 280
     Width = 213
     Height = 13
     Caption = 'Read the README file for more information...'
   end
   object Button1: TButton
     Left = 88
-    Top = 280
+    Top = 296
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -91,7 +90,7 @@ object AboutForm1: TAboutForm1
     Left = 8
     Top = 112
     Width = 233
-    Height = 145
+    Height = 161
     Caption = 'Menu entries'
     TabOrder = 1
     object Label1: TLabel
@@ -131,7 +130,7 @@ object AboutForm1: TAboutForm1
     end
     object Label6: TLabel
       Left = 8
-      Top = 104
+      Top = 120
       Width = 39
       Height = 13
       Caption = 'Config...'
@@ -173,24 +172,38 @@ object AboutForm1: TAboutForm1
     end
     object Label15: TLabel
       Left = 80
-      Top = 104
+      Top = 120
       Width = 121
       Height = 13
       Caption = 'Open configuration dialog'
     end
     object Label16: TLabel
       Left = 8
-      Top = 120
+      Top = 136
       Width = 37
       Height = 13
       Caption = 'About...'
     end
     object Label17: TLabel
       Left = 80
-      Top = 120
+      Top = 136
       Width = 77
       Height = 13
       Caption = 'Show this dialog'
+    end
+    object Label23: TLabel
+      Left = 8
+      Top = 104
+      Width = 51
+      Height = 13
+      Caption = 'Breakpoint'
+    end
+    object Label24: TLabel
+      Left = 80
+      Top = 104
+      Width = 86
+      Height = 13
+      Caption = 'Toggle breakpoint'
     end
   end
 end

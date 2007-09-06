@@ -25,11 +25,11 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, JvDockTree, JvDockControlForm, JvDockVIDStyle, JvDockVSNetStyle,
   JvComponentBase, VirtualTrees, DbgpWinSocket, DebugInspectorForm, nppplugin,
-  Menus, StrUtils;
+  Menus, StrUtils, NppDockingForm;
 
 type
   TRefreshCB = procedure(Sender: TObject) of Object;
-  TDebugVarForm1 = class(TForm)
+  TDebugVarForm1 = class(TNppDockingForm)
     VirtualStringTree1: TVirtualStringTree;
     JvDockClient1: TJvDockClient;
     PopupMenu1: TPopupMenu;
@@ -145,12 +145,11 @@ begin
     TNppDockingForm1(self.Owner).DoEval(Item^.fullname);
   end;
   if (Item^.datatype <> 'string') then exit;
-  i := TDebugInspectorForm1.Create(nil);
+  i := TDebugInspectorForm1.Create(self);
   i.Show;
   i.SetData(Item.data);
   //i.AutoSize := true;
   //i.AutoSize := false; // wtf
-  self.Npp.RegisterForm(TForm(i));
   // register witn npp?
 end;
 

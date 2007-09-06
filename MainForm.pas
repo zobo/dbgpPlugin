@@ -121,19 +121,16 @@ begin
   self.DebugStackForm1.OnGetContext := self.StackOnGetContext;
   self.DebugStackForm1.OnStackSelect := self.StackSelect;
   //self.DebugStackForm1.Npp := self.Npp;
-  self.Npp.RegisterForm(TForm(self.DebugStackForm1));
 
   // local context...
   self.ContextLocalForm1 := TDebugVarForm1.Create(self);
   self.ContextLocalForm1.Npp := self.Npp;
-  self.Npp.RegisterForm(TForm(self.ContextLocalForm1));
   self.ContextLocalForm1.OnRefresh := self.ContextOnRefresh;
   self.ContextLocalForm1.Tag := 0;
   self.ContextLocalForm1.Caption := 'Local context';
   // global context
   self.ContextGlobalForm1 := TDebugVarForm1.Create(self);
   self.ContextGlobalForm1.Npp := self.Npp;
-  self.Npp.RegisterForm(TForm(self.ContextGlobalForm1));
   self.ContextGlobalForm1.OnRefresh := self.ContextOnRefresh;
   self.ContextGlobalForm1.Tag := 1;
   self.ContextGlobalForm1.Caption := 'Global context';
@@ -142,7 +139,6 @@ begin
 
   self.DebugRawForm1 := TDebugRawForm1.Create(self);
   //self.DebugRawForm1.Npp := self.Npp;
-  self.Npp.RegisterForm(TForm(self.DebugRawForm1));
   //self.DebugRawForm1.Show;
 
   //self.DebugStackForm1.ManualDock(self.JvDockServer1.BottomDockPanel);
@@ -295,8 +291,8 @@ begin
   x.UseMenu(false);
   x.SetVars(list);
   x.Caption := 'Eval';
+  x.DefaultCloseAction := caFree;
   x.Show;
-  self.Npp.RegisterForm(TForm(x));
 end;
 
 procedure TNppDockingForm1.sockDbgpBreakpoints(Sender: TDbgpWinSocket;
@@ -323,7 +319,6 @@ begin
   if (not Assigned(self.DebugEvalForm1)) then
   begin
     self.DebugEvalForm1 := TDebugEvalForm1.Create(self);
-    self.Npp.RegisterForm(TForm(self.DebugEvalForm1));
   end;
   self.DebugEvalForm1.ComboBox1.Text := self.Npp.GetWord;
   r := self.DebugEvalForm1.ShowModal;
@@ -343,8 +338,8 @@ end;
 procedure TNppDockingForm1.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
-  MessageBeep(1);
-  Action := caNone;
+  // Only executed when exiting the app... Otherwise the form is only hidden...
+  Action := caFree;
 end;
 
 procedure TNppDockingForm1.sockDbgpBreak(Sender: TDbgpWinSocket;
@@ -411,14 +406,37 @@ end;
 procedure TNppDockingForm1.BitBtnBreakpointClick(Sender: TObject);
 var
   s: string;
-  i: integer;
+  i,j: integer;
   bp: TBreakpoint;
+  remove: boolean;
 begin
   self.Npp.GetFileLine(s,i);
+  // look for the debug
+
+  remove := false;
+  for j := 0 to Length(self.DebugBreakpointsForm1.breakpoints)-1 do
+  begin
+    if (self.DebugBreakpointsForm1.breakpoints[j].breakpointtype <> btLine) then continue;
+    if (self.DebugBreakpointsForm1.breakpoints[j].filename <> s) then continue;
+    if (self.DebugBreakpointsForm1.breakpoints[j].lineno <> i+1) then continue;
+    remove := true;
+    bp := self.DebugBreakpointsForm1.breakpoints[j];
+    // assuming we are in the right file...
+    break;
+  end;
+
   if (self.state in [dsStarting, dsBreak]) then
   begin
-    self.sock.SetBreakpoint(s,i+1);
+    if (remove) then
+      self.sock.RemoveBreakpoint(bp)
+    else
+      self.sock.SetBreakpoint(s,i+1);
     self.sock.GetBreakpoints;
+  end
+  else
+  if (remove) then
+  begin
+    self.DebugBreakpointsForm1.RemoveBreakpoint(bp);
   end
   else
   begin
@@ -439,7 +457,10 @@ begin
   end;
 
   // @todo: create some helper functions in NppPlugin
-  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, i, 4);
+  if (remove) then
+    SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETE, i, 4)
+  else
+    SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, i, 4);
 end;
 
 procedure TNppDockingForm1.BitBtnEvalClick(Sender: TObject);

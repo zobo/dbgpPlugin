@@ -24,11 +24,11 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, JvComponentBase, JvDockControlForm, VirtualTrees, DbgpWinSocket,
-  Menus, DebugBreakpointEditForm;
+  Menus, DebugBreakpointEditForm, NppDockingForm;
 
 type
   TBreakpointEditCB = procedure(Sender: TComponent; bp: TBreakpoint) of Object;
-  TDebugBreakpointsForm1 = class(TForm)
+  TDebugBreakpointsForm1 = class(TNppDockingForm)
     VirtualStringTree1: TVirtualStringTree;
     JvDockClient1: TJvDockClient;
     PopupMenu1: TPopupMenu;
@@ -53,6 +53,7 @@ type
     breakpoints: TBreakpoints;
     procedure SetBreakpoints(bps: TBreakpoints);
     procedure AddBreakpoint(bp: TBreakpoint);
+    procedure RemoveBreakpoint(bp: TBreakpoint);
   published
     property OnBreakpointAdd: TBreakpointEditCB read FOnBreakpointAdd write FOnBreakpointAdd;
     property OnBreakpointEdit: TBreakpointEditCB read FOnBreakpointEdit write FOnBreakpointEdit;
@@ -144,22 +145,11 @@ procedure TDebugBreakpointsForm1.Removebreakpoint1Click(Sender: TObject);
 var
   bp: PBreakpoint;
   bp2: TBreakpoint;
-  tmp: TBreakpoints;
-  i,j: integer;
 begin
   if (self.VirtualStringTree1.FocusedNode = nil) then exit;
   bp := self.VirtualStringTree1.GetNodeData(self.VirtualStringTree1.FocusedNode);
   bp2 := bp^;
-  SetLength(tmp, Length(self.breakpoints));
-  j := 0;
-  for i := 0 to Length(self.breakpoints)-1 do
-  begin
-    if (bp2.id = self.breakpoints[i].id) then continue;
-    tmp[j] := self.breakpoints[i];
-    inc(j);
-  end;
-  SetLength(tmp, j);
-  self.SetBreakpoints(tmp);
+  self.RemoveBreakpoint(bp2);
   if (Assigned(self.FOnBreakpointDelete)) then self.FOnBreakpointDelete(self, bp2);
 end;
 
@@ -218,6 +208,23 @@ begin
     self.Editbreakpoint1.Enabled := false;
     self.Removebreakpoint1.Enabled := false;
   end;
+end;
+
+procedure TDebugBreakpointsForm1.RemoveBreakpoint(bp: TBreakpoint);
+var
+  tmp: TBreakpoints;
+  i, j: integer;
+begin
+  SetLength(tmp, Length(self.breakpoints));
+  j := 0;
+  for i := 0 to Length(self.breakpoints)-1 do
+  begin
+    if (bp.id = self.breakpoints[i].id) then continue;
+    tmp[j] := self.breakpoints[i];
+    inc(j);
+  end;
+  SetLength(tmp, j);
+  self.SetBreakpoints(tmp);
 end;
 
 end.

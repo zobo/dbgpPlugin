@@ -246,7 +246,7 @@ begin
   begin
     if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.init.server) then continue;
     if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
-    if (self.maps[i][3] = LeftStr(Local, Length(self.maps[i][3]))) then
+    if (CompareText(self.maps[i][3], LeftStr(Local, Length(self.maps[i][3])))=0) then
     begin
       r := self.maps[i][2] + Copy(Local, Length(self.maps[i][3])+1, MaxInt);
       if (self.remote_unix) then
@@ -265,6 +265,7 @@ begin
   Result := '';
 end;
 
+// Todo: This ugly thing needs rewriting!
 function TDbgpWinSocket.MapRemoteToLocal(Remote: String): String;
 var
   i: integer;
@@ -279,10 +280,11 @@ begin
     Result := r;
     exit;
   end;
-  if (LeftStr(Remote, 8)='file:///') and (Pos(':',Remote)=10) then
+  if (LeftStr(Remote, 8)='file:///') and (Length(Remote)>9) and (Remote[10]=':') then
   begin
     self.remote_unix := false;
     Remote := Copy(Remote,9,MaxInt);
+    Remote := StringReplace(Remote, '/', '\', [rfReplaceAll]);
   end
   else if (LeftStr(Remote, 7)='file://') then
   begin
@@ -298,7 +300,7 @@ begin
   begin
     if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.init.server) then continue;
     if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
-    if (self.maps[i][2] = LeftStr(Remote, Length(self.maps[i][2]))) then
+    if (CompareText(self.maps[i][2], LeftStr(Remote, Length(self.maps[i][2])))=0) then
     begin
       r := self.maps[i][3];
       if (r = 'DBGP:') then

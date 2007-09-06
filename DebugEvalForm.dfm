@@ -15,7 +15,6 @@ object DebugEvalForm1: TDebugEvalForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  FormStyle = fsStayOnTop
   OldCreateOrder = False
   DesignSize = (
     333

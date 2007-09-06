@@ -23,10 +23,10 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, StrUtils;
+  Dialogs, StdCtrls, StrUtils, NppDockingForm;
 
 type
-  TDebugInspectorForm1 = class(TForm)
+  TDebugInspectorForm1 = class(TNppDockingForm)
     Memo1: TMemo;
     CheckBox1: TCheckBox;
     procedure CheckBox1Click(Sender: TObject);

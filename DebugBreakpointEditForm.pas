@@ -23,10 +23,10 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, DbgpWinSocket;
+  Dialogs, StdCtrls, DbgpWinSocket, NppDockingForm;
 
 type
-  TDebugBreakpointEditForm1 = class(TForm)
+  TDebugBreakpointEditForm1 = class(TNppDockingForm)
     Label1: TLabel;
     ComboBox1: TComboBox;
     Label2: TLabel;

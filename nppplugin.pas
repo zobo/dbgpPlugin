@@ -283,8 +283,6 @@ type
       procedure MessageProc(var Msg: TMessage); virtual;
 
       // usefull stuff
-      procedure RegisterForm(var form: TForm);
-      procedure UnregisterForm(var form: TForm);
       procedure RegisterDockingForm(form: TForm{TNppDockingForm});
 
       // df
@@ -343,8 +341,6 @@ end;
 destructor TNppPlugin.Destroy;
 var i: Integer;
 begin
-  // unregister dialogs?
-  // dispose FuncsArray?
   for i:=0 to Length(self.FuncArray)-1 do
   begin
     if (self.FuncArray[i].ShortcutKey <> nil) then
@@ -428,9 +424,6 @@ var
   cap: ^String;
   _form: TNppDockingForm;
 begin
-  // register form
-  self.RegisterForm(TForm(form));
-
   _form := form as TNppDockingForm;
   FillChar(td,sizeof(td),0);
 
@@ -453,33 +446,9 @@ begin
   r:=SendMessage(self.NppData.NppHandle, WM_DMM_REGASDCKDLG, 0, Integer(@td));
 end;
 
-procedure TNppPlugin.RegisterForm(var form: TForm);
-var
-  r: Integer;
-begin
-  r:=SendMessage(self.NppData.NppHandle, WM_MODELESSDIALOG, MODELESSDIALOGADD, form.Handle);
-  if (r = 0) then
-  begin
-    ShowMessage('Failed reg of form '+form.Name);
-    exit;
-  end;
-end;
-
 procedure TNppPlugin.SetInfo(NppData: TNppData);
 begin
   self.NppData := NppData;
-end;
-
-procedure TNppPlugin.UnregisterForm(var form: TForm);
-var
-  r: Integer;
-begin
-  r:=SendMessage(self.NppData.NppHandle, WM_MODELESSDIALOG, MODELESSDIALOGREMOVE, form.Handle);
-  if (r = 0) then
-  begin
-    ShowMessage('Failed unreg form '+form.Name);
-    exit;
-  end;
 end;
 
 end.

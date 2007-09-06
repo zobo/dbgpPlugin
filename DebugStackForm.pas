@@ -24,12 +24,12 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, VirtualTrees, JvDockTree, JvDockControlForm, JvDockVCStyle,
-  JvComponentBase, JvDockVIDStyle, JvDockVSNetStyle, DbgpWinSocket, Menus;
+  JvComponentBase, JvDockVIDStyle, JvDockVSNetStyle, DbgpWinSocket, Menus, NppDockingForm;
 
 type
   TGetContextCB = procedure(Sender: TObject; Depth: Integer) of Object;
   TStackSelectCB = procedure(Sender: TObject; filename: String; lineno: integer) of Object;
-  TDebugStackForm1 = class(TForm)
+  TDebugStackForm1 = class(TNppDockingForm)
     VirtualStringTree1: TVirtualStringTree;
     JvDockClient1: TJvDockClient;
     PopupMenu1: TPopupMenu;

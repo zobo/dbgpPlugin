@@ -1,3 +1,9 @@
+2007-09-05 v0.4 alpha
+
+Fixed floating window problem.
+Added line breakpoint toggle.
+Fixed windows path map problem.
+
 2007-08-10 v0.3 alpha
 
 A few bug fixes.

@@ -19,7 +19,7 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-I would say, evolving pre-0.3-a. q:)
+I would say, evolving pre-0.4-a. q:)
 
 FEATURES / TODOS
  
@@ -39,7 +39,7 @@ FEATURES / TODOS
 - STDERR redirect (log child?)
 - watch child
 / NL convert (needs tweaking)
-/ toolbar icons (step into, over, out, run, add (remove) breakpoint, child icons?)
+/ toolbar icons (step into, over, out, run, add and remove breakpoint, child icons?)
 - run to cursor
 / DBGp proxy support
 + file mapping (server ip based)
@@ -47,6 +47,7 @@ FEATURES / TODOS
 + interface for getting local context on depth (on stack child)
 - a Manual!!
 + SOURCE support
++ Easy line breakpoint toggle
 
 ( - todo, / started, + done, ? don't know if I'll do it )
 

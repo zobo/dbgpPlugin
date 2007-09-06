@@ -23,11 +23,11 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, Grids, StdCtrls, NppDockingForm, DbgpWinSocket, JvDockTree,
+  Dialogs, Grids, StdCtrls, NppForms, DbgpWinSocket, JvDockTree,
   JvDockControlForm, JvDockVCStyle, JvComponentBase;
 
 type
-  TConfigForm1 = class(TNppDockingForm)
+  TConfigForm1 = class(TNppForm)
     GroupBox1: TGroupBox;
     Button1: TButton;
     DeleteButton: TButton;
@@ -41,7 +41,6 @@ type
     procedure DeleteButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button3Click(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
   public
@@ -95,6 +94,9 @@ begin
   self.CheckBox1.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_local;
   self.CheckBox2.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_remote;
   self.CheckBox3.Checked := (self.Npp as TDbgpNppPlugin).config.use_source;
+
+  // kill the DLG... don't hide it...
+  self.DefaultCloseAction := caFree;
 end;
 
 
@@ -116,16 +118,10 @@ begin
   conf.refresh_local := self.CheckBox1.Checked;
   conf.refresh_remote := self.CheckBox2.Checked;
   conf.use_source := self.CheckBox3.Checked;
-  
+
   (self.Npp as TDbgpNppPlugin).WriteMaps(conf);
 
   self.Close;
-end;
-
-procedure TConfigForm1.FormClose(Sender: TObject;
-  var Action: TCloseAction);
-begin
-  Action := caFree;
 end;
 
 end.

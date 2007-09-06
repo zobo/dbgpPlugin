@@ -14,7 +14,6 @@ object DebugInspectorForm1: TDebugInspectorForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  FormStyle = fsStayOnTop
   OldCreateOrder = False
   Position = poMainFormCenter
   Visible = True

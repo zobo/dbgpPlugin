@@ -23,10 +23,10 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls;
+  Dialogs, StdCtrls, NppDockingForm;
 
 type
-  TDebugEvalForm1 = class(TForm)
+  TDebugEvalForm1 = class(TNppDockingForm)
     Button1: TButton;
     Button2: TButton;
     ComboBox1: TComboBox;
