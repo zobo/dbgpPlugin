@@ -1,10 +1,10 @@
-object DebugVarForm1: TDebugVarForm1
+object DebugVarForm: TDebugVarForm
   Left = 353
   Top = 122
   Width = 395
   Height = 326
   BorderStyle = bsSizeToolWin
-  Caption = 'Context'
+  Caption = 'Attributes'
   Color = clBtnFace
   DockSite = True
   DragKind = dkDock
@@ -36,13 +36,13 @@ object DebugVarForm1: TDebugVarForm1
     Header.Options = [hoColumnResize, hoDrag, hoVisible]
     HintMode = hmTooltip
     ParentShowHint = False
-    PopupMenu = PopupMenu1
     ShowHint = True
     TabOrder = 0
     TreeOptions.SelectionOptions = [toFullRowSelect]
     TreeOptions.StringOptions = [toSaveCaptions]
     OnDblClick = VirtualStringTree1DblClick
     OnGetText = VirtualStringTree1GetText
+    OnPaintText = VirtualStringTree1PaintText
     Columns = <
       item
         Options = [coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
@@ -73,13 +73,5 @@ object DebugVarForm1: TDebugVarForm1
     CustomDock = False
     Left = 8
     Top = 24
-  end
-  object PopupMenu1: TPopupMenu
-    Left = 48
-    Top = 24
-    object Refres1: TMenuItem
-      Caption = 'Refresh'
-      OnClick = Refres1Click
-    end
   end
 end

@@ -82,7 +82,7 @@ begin
   self.breakpoint.functionname := self.Edit3.Text;
   self.breakpoint.classname := self.Edit6.Text;
   self.breakpoint.temporary := self.CheckBox1.Checked;
-  self.breakpoint.expression := self.Edit4.Text;
+  self.breakpoint.exception := self.Edit4.Text;
   try self.breakpoint.hit_value := StrToInt(self.Edit5.Text); except on EConvertError do self.breakpoint.hit_value := 0; end;
 
   self.breakpoint.hit_condition := self.ComboBox3.Text;
@@ -145,7 +145,7 @@ begin
   self.Edit3.Text := self.breakpoint.functionname;
   self.Edit6.Text := self.breakpoint.classname;
   self.CheckBox1.Checked := self.breakpoint.temporary;
-  self.Edit4.Text := self.breakpoint.expression;
+  self.Edit4.Text := self.breakpoint.exception;
   self.Edit5.Text := IntToStr(self.breakpoint.hit_value);
   self.ComboBox3.Text := self.breakpoint.hit_condition;
 

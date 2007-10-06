@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 }
 
-unit DebugVarForm;
+unit DebugVarForms;
 
 interface
 
@@ -28,34 +28,41 @@ uses
   Menus, StrUtils, NppDockingForm;
 
 type
-  TRefreshCB = procedure(Sender: TObject) of Object;
-  TDebugVarForm1 = class(TNppDockingForm)
+  TNodeCompareData = record
+    FullName: string;
+    states: TVirtualNodeStates;
+    data: string;
+  end;
+  PNodeCompareData = ^TNodeCompareData;
+  TDebugVarForm = class(TNppDockingForm)
     VirtualStringTree1: TVirtualStringTree;
     JvDockClient1: TJvDockClient;
-    PopupMenu1: TPopupMenu;
-    Refres1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure VirtualStringTree1GetText(Sender: TBaseVirtualTree;
       Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
       var CellText: WideString);
     procedure VirtualStringTree1DblClick(Sender: TObject);
-    procedure Refres1Click(Sender: TObject);
+    procedure VirtualStringTree1PaintText(Sender: TBaseVirtualTree;
+      const TargetCanvas: TCanvas; Node: PVirtualNode;
+      Column: TColumnIndex; TextType: TVSTTextType);
   private
     { Private declarations }
-    FOnRefresh: TRefreshCB;
-    procedure SubSetVars(ParentNode: PVirtualNode; list:TPropertyItems);
+    procedure SubSetVars(ParentNode: PVirtualNode; list:TPropertyItems; CompareList: TList);
+    procedure GenerateCompareData(var list: TList; node: PVirtualNode);
+    function GetCompareData(FullName: string; list: TList): PNodeCompareData;
   public
     { Public declarations }
     Npp: TNppPlugin;
-    procedure UseMenu(x: Boolean);
     procedure SetVars(list: TPropertyItems);
     procedure ClearVars;
-  published
-    property OnRefresh: TRefreshCB read FOnRefresh write FOnRefresh;
   end;
-
+  TPropertyItemEx = record
+    p: TPropertyItem;
+    changed: boolean;
+  end;
+  PPropertyItemEx = ^TPropertyItemEx;
 var
-  DebugVarForm1: TDebugVarForm1;
+  DebugVarForm: TDebugVarForm;
 
 implementation
 
@@ -63,33 +70,89 @@ uses
   MainForm;
 {$R *.dfm}
 
-procedure TDebugVarForm1.FormCreate(Sender: TObject);
+procedure TDebugVarForm.FormCreate(Sender: TObject);
 begin
-  self.VirtualStringTree1.NodeDataSize := SizeOf(TPropertyItem);
+  self.VirtualStringTree1.NodeDataSize := SizeOf(TPropertyItemEx);
 end;
 
-procedure TDebugVarForm1.SetVars(list: TPropertyItems);
+// insane
+
+function TDebugVarForm.GetCompareData(FullName: string; list: TList): PNodeCompareData;
+var
+  i: integer;
 begin
+  for i:=0 to list.Count-1 do
+  begin
+    Result := list[i];
+    if (Result^.FullName = FullName) then exit;
+  end;
+  Result := nil;
+end;
+
+procedure TDebugVarForm.GenerateCompareData(var list: TList; node: PVirtualNode);
+var
+  node1: PVirtualNode;
+  data: PNodeCompareData;
+  Item: PPropertyItem;
+begin
+  if (node = nil) then exit;
+  node1 := node.FirstChild;
+  while (node1 <> nil) do
+  begin
+    New(data);
+    Item := self.VirtualStringTree1.GetNodeData(node1);
+    data^.FullName := Item^.fullname;
+    data^.states := [];
+    if (vsExpanded in node1.States) then Include(data^.states, vsExpanded);
+    data^.data := Item^.data;
+    list.Add(data);
+    self.GenerateCompareData(list, node1);
+    node1 := node1.NextSibling;
+  end;
+end;
+
+procedure TDebugVarForm.SetVars(list: TPropertyItems);
+var
+  cmplist: TList;
+  i: integer;
+  oldxy: TPoint;
+
+begin
+  // save state (expanded)
+  // save data for compare
+  cmplist := TList.Create;
+  self.GenerateCompareData(cmplist, self.VirtualStringTree1.RootNode);
+
+  oldxy := self.VirtualStringTree1.OffsetXY;
+
   self.VirtualStringTree1.Clear;
   self.VirtualStringTree1.BeginUpdate;
 
-  self.SubSetVars(nil, list);
+  self.SubSetVars(nil, list, cmplist);
 
   self.VirtualStringTree1.EndUpdate;
+  for i:=0 to cmplist.Count-1 do
+  begin
+    Dispose(cmplist[i]);
+  end;
+  self.VirtualStringTree1.OffsetXY := oldxy;
 end;
 
-procedure TDebugVarForm1.SubSetVars(ParentNode: PVirtualNode;
-  list: TPropertyItems);
+procedure TDebugVarForm.SubSetVars(ParentNode: PVirtualNode;
+  list: TPropertyItems; CompareList: TList);
 var
   i: Integer;
   Node: PVirtualNode;
   Item: PPropertyItem;
+  ItemEx: PPropertyItemEx;
+  CompareData: PNodeCompareData;
 begin
 
   for i:=0 to Length(list)-1 do
   begin
     Node := self.VirtualStringTree1.AddChild(ParentNode);
     Item := self.VirtualStringTree1.GetNodeData(Node);
+    ItemEx := self.VirtualStringTree1.GetNodeData(Node);
 
     Item^.name := list[i].name;
     Item^.fullname := list[i].fullname;
@@ -106,34 +169,65 @@ begin
     Item^.data := list[i].data;
     Item^.children := nil;
 
+    ItemEx^.changed := false;
+    // get compare data
+    CompareData := self.GetCompareData(Item^.fullname, CompareList);
+    if (CompareData <> nil) then
+    begin
+      if (Item^.data <> CompareData^.data) then
+      begin
+        ItemEx^.changed := true;
+        // hilight
+      end;
+      if (vsExpanded in CompareData^.states) then Include(Node.States, vsExpanded);
+    end
+    else
+    begin
+      ItemEx^.changed := true; // ?
+    end;
+
     if ((list[i].numchildren <> '0') and (list[i].children <> nil)) then
     begin
-      self.SubSetVars(Node, list[i].children^);
+      self.SubSetVars(Node, list[i].children^, CompareList);
     end;
   end;
 
 end;
 
-procedure TDebugVarForm1.VirtualStringTree1GetText(
+procedure TDebugVarForm.VirtualStringTree1GetText(
   Sender: TBaseVirtualTree; Node: PVirtualNode; Column: TColumnIndex;
   TextType: TVSTTextType; var CellText: WideString);
 var
   Item: PPropertyItem;
 begin
-
   Item := PPropertyItem(Sender.GetNodeData(Node));
 
   case Column of
   0: if (Node.Parent <> Sender.RootNode) then CellText := Item^.name else CellText := Item^.fullname;
   //1: CellText := Item^.data;
-  1: CellText := AnsiReplaceStr(Item^.data, #10, #13+#10);
+  1:
+  begin
+    if (Item^.datatype = 'object') then
+      CellText := Item^.classname
+    else
+    CellText := AnsiReplaceStr(Item^.data, #10, #13+#10);
+  end;
   2: CellText := Item^.datatype;
   end;
+end;
 
+procedure TDebugVarForm.VirtualStringTree1PaintText(
+  Sender: TBaseVirtualTree; const TargetCanvas: TCanvas;
+  Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType);
+var
+  ItemEx: PPropertyItemEx;
+begin
+  ItemEx := Sender.GetNodeData(Node);
+  if (ItemEx^.changed) then TargetCanvas.Font.Color := clRed;
 end;
 
 // show data
-procedure TDebugVarForm1.VirtualStringTree1DblClick(Sender: TObject);
+procedure TDebugVarForm.VirtualStringTree1DblClick(Sender: TObject);
 var
   Item: PPropertyItem;
   i: TDebugInspectorForm1;
@@ -153,21 +247,7 @@ begin
   // register witn npp?
 end;
 
-procedure TDebugVarForm1.UseMenu(x: Boolean);
-begin
-  if (not x) then
-    self.VirtualStringTree1.PopupMenu := nil
-  else
-    self.VirtualStringTree1.PopupMenu := self.PopupMenu1;
-end;
-
-procedure TDebugVarForm1.Refres1Click(Sender: TObject);
-begin
-  if (Assigned(FOnRefresh)) then
-    self.FOnRefresh(self);
-end;
-
-procedure TDebugVarForm1.ClearVars;
+procedure TDebugVarForm.ClearVars;
 begin
   self.VirtualStringTree1.Clear;
 end;

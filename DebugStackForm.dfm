@@ -15,7 +15,6 @@ object DebugStackForm1: TDebugStackForm1
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
-  Visible = True
   OnClose = FormClose
   OnCreate = FormCreate
   DesignSize = (

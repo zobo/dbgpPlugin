@@ -54,8 +54,10 @@ type
     Label23: TLabel;
     Label24: TLabel;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
+    procedure GetVersion(FileName: string; var VerMajor, VerMinor, VerRelease, VerBuild: integer);
   public
     { Public declarations }
   end;
@@ -70,6 +72,45 @@ implementation
 procedure TAboutForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   Action := caFree;
+end;
+
+procedure TAboutForm1.FormCreate(Sender: TObject);
+var
+  path,v: string;
+  n,i: cardinal;
+  ma,mi,re,bu:integer;
+
+begin
+  i := GetModuleHandle(PChar('dbgpPlugin.dll'));
+  SetLength(path, 1001);
+  GetModuleFileName(i, PChar(path), 1000);
+  SetLength(path, StrLen(PChar(path)));
+  self.GetVersion(path,ma,mi,re,bu);
+  self.Label7.Caption := Format(self.Label7.Caption, [ma,mi,re,bu]);
+end;
+
+procedure TAboutForm1.GetVersion(FileName: string; var VerMajor, VerMinor,
+  VerRelease, VerBuild: integer);
+var
+  VerInfoSize, VerValueSize, Dummy: DWord;
+  VerInfo: Pointer;
+  VerValue: PVSFixedFileInfo;
+begin
+  VerInfoSize := GetFileVersionInfoSize(PChar(FileName), Dummy);
+  GetMem(VerInfo, VerInfoSize);
+  GetFileVersionInfo(PChar(FileName), 0, VerInfoSize, VerInfo);
+  if VerInfo <> nil then
+  begin
+    VerQueryValue(VerInfo, '\', Pointer(VerValue), VerValueSize);
+    with VerValue^ do
+    begin
+      VerMajor := dwFileVersionMS shr 16;
+      VerMinor := dwFileVersionMS and $FFFF;
+      VerRelease := dwFileVersionLS shr 16;
+      VerBuild := dwFileVersionLS and $FFFF;
+    end;
+  end;
+  FreeMem(VerInfo, VerInfoSize);
 end;
 
 end.

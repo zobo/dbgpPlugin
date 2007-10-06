@@ -18,14 +18,15 @@ object AboutForm1: TAboutForm1
   OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object Label7: TLabel
     Left = 8
     Top = 8
-    Width = 190
+    Width = 240
     Height = 13
-    Caption = 'DBGP Plugin v0.3 for Notepad++  v4.1+'
+    Caption = 'DBGP Plugin v%d.%d.%d.%d for Notepad++  v4.1+'
   end
   object Label8: TLabel
     Left = 8

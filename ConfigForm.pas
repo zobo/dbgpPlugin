@@ -92,7 +92,7 @@ begin
   end;
 
   self.CheckBox1.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_local;
-  self.CheckBox2.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_remote;
+  self.CheckBox2.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_global;
   self.CheckBox3.Checked := (self.Npp as TDbgpNppPlugin).config.use_source;
 
   // kill the DLG... don't hide it...
@@ -116,7 +116,7 @@ begin
 
   conf.maps := maps;
   conf.refresh_local := self.CheckBox1.Checked;
-  conf.refresh_remote := self.CheckBox2.Checked;
+  conf.refresh_global := self.CheckBox2.Checked;
   conf.use_source := self.CheckBox3.Checked;
 
   (self.Npp as TDbgpNppPlugin).WriteMaps(conf);

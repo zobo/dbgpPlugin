@@ -11,7 +11,6 @@ type
   private
     { Private declarations }
   protected
-    procedure CreateParams(var Params: TCreateParams); override;
     procedure RegisterForm();
     procedure UnregisterForm();
     procedure DoClose(var Action: TCloseAction); override;
@@ -59,27 +58,11 @@ begin
   inherited;
 end;
 
-// I'm sure there is a better way arround this, but hack it does the job for now...
-// TODO: A kickass solution would be to have a TWinControl that would actually encapuslate the NPP HWND...
-procedure TNppForm.CreateParams(var Params: TCreateParams);
-begin
-  inherited;
-  if (not windows.IsWindow(self.Npp.NppData.NppHandle)) then exit;
-  if Parent = nil then
-    Params.WndParent := self.Npp.NppData.NppHandle;
-end;
-
-//procedure TNppForm.Show;
-//begin
-//  SendMessage(self.Npp.NppData.NppHandle, WM_DMM_SHOW, 0, LPARAM(self.Handle));
-//  inherited;
-//end;
-
 procedure TNppForm.RegisterForm();
 var
   r: Integer;
 begin
-  r:=SendMessage(self.Npp.NppData.NppHandle, WM_MODELESSDIALOG, MODELESSDIALOGADD, self.Handle);
+  r:=SendMessage(self.Npp.NppData.NppHandle, NPPM_MODELESSDIALOG, MODELESSDIALOGADD, self.Handle);
 {
   if (r = 0) then
   begin
@@ -94,7 +77,7 @@ var
   r: Integer;
 begin
   if (not self.HandleAllocated) then exit;
-  r:=SendMessage(self.Npp.NppData.NppHandle, WM_MODELESSDIALOG, MODELESSDIALOGREMOVE, self.Handle);
+  r:=SendMessage(self.Npp.NppData.NppHandle, NPPM_MODELESSDIALOG, MODELESSDIALOGREMOVE, self.Handle);
 {
   if (r = 0) then
   begin

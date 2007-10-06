@@ -1,3 +1,21 @@
+2007-10-06 v0.5 alpha
+
+About form displays current version and build.
+Breakpoints display icons.
+One config variable was miss-named.
+Added menu items for all child windows.
+Experimental eval on mouse dwell.
+Moved plugin config file to where it's supposed to be. Most people will need to reenter their configuration.
+Fancy menu enabling and disabling.
+Now using file version.
+Implemented synced call for easier property getting (watches, mouse dwell).
+Small breakpoints bug.
+Reuse eval result form.
+Some window handling changes.
+"Run to" button. (Temporary breakpoints don't work as they should because of XDebug)
+Var child shows changes in data tree.
+Few code cleanups, updated constants.
+
 2007-09-05 v0.4 alpha
 
 Fixed floating window problem.

@@ -24,7 +24,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, JvComponentBase, JvDockControlForm, VirtualTrees, DbgpWinSocket,
-  Menus, DebugBreakpointEditForm, NppDockingForm;
+  Menus, DebugBreakpointEditForm, NppDockingForm, ImgList;
 
 type
   TBreakpointEditCB = procedure(Sender: TComponent; bp: TBreakpoint) of Object;
@@ -35,6 +35,7 @@ type
     Addbreakpoint1: TMenuItem;
     Editbreakpoint1: TMenuItem;
     Removebreakpoint1: TMenuItem;
+    ImageList1: TImageList;
     procedure Addbreakpoint1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Editbreakpoint1Click(Sender: TObject);
@@ -43,6 +44,9 @@ type
       var CellText: WideString);
     procedure PopupMenu1Popup(Sender: TObject);
     procedure Removebreakpoint1Click(Sender: TObject);
+    procedure VirtualStringTree1GetImageIndex(Sender: TBaseVirtualTree;
+      Node: PVirtualNode; Kind: TVTImageKind; Column: TColumnIndex;
+      var Ghosted: Boolean; var ImageIndex: Integer);
   private
     { Private declarations }
     FOnBreakpointAdd: TBreakpointEditCB;
@@ -197,6 +201,20 @@ begin
      end;
   3: CellText := IntToStr(bp^.hit_count);
   end;
+end;
+
+procedure TDebugBreakpointsForm1.VirtualStringTree1GetImageIndex(
+  Sender: TBaseVirtualTree; Node: PVirtualNode; Kind: TVTImageKind;
+  Column: TColumnIndex; var Ghosted: Boolean; var ImageIndex: Integer);
+var
+  bp: PBreakpoint;
+begin
+  ImageIndex := -1;
+  if (Column <> 0) then exit;
+  bp := Sender.GetNodeData(Node);
+  ImageIndex := 0;
+  if (bp^.temporary) then inc(ImageIndex,2);
+  if (not bp^.state) then inc(ImageIndex);
 end;
 
 procedure TDebugBreakpointsForm1.PopupMenu1Popup(Sender: TObject);

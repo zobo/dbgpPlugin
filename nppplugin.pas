@@ -31,36 +31,36 @@ const
 
   { Most of this defs are outdated... But there is no consistant N++ doc... }
   NOTEPADPLUS_USER = (WM_USER + 1000);
-  WM_GETCURRENTSCINTILLA = (NOTEPADPLUS_USER + 4);
-  WM_GETCURRENTLANGTYPE = (NOTEPADPLUS_USER + 5);
-  WM_SETCURRENTLANGTYPE = (NOTEPADPLUS_USER + 6);
-  WM_NBOPENFILES = (NOTEPADPLUS_USER + 7);
+  NPPM_GETCURRENTSCINTILLA = (NOTEPADPLUS_USER + 4);
+  NPPM_GETCURRENTLANGTYPE = (NOTEPADPLUS_USER + 5);
+  NPPM_SETCURRENTLANGTYPE = (NOTEPADPLUS_USER + 6);
+  NPPM_GETNBOPENFILES = (NOTEPADPLUS_USER + 7);
     ALL_OPEN_FILES = 0;
     PRIMARY_VIEW = 1;
     SECOND_VIEW	= 2;
-  WM_GETOPENFILENAMES = (NOTEPADPLUS_USER + 8);
+  NPPM_GETOPENFILENAMES = (NOTEPADPLUS_USER + 8);
   WM_CANCEL_SCINTILLAKEY = (NOTEPADPLUS_USER + 9);
   WM_BIND_SCINTILLAKEY = (NOTEPADPLUS_USER + 10);
   WM_SCINTILLAKEY_MODIFIED = (NOTEPADPLUS_USER + 11);
-  WM_MODELESSDIALOG = (NOTEPADPLUS_USER + 12);
+  NPPM_MODELESSDIALOG = (NOTEPADPLUS_USER + 12);
     MODELESSDIALOGADD = 0;
     MODELESSDIALOGREMOVE = 1;
 
-  WM_NBSESSIONFILES = (NOTEPADPLUS_USER + 13);
-  WM_GETSESSIONFILES = (NOTEPADPLUS_USER + 14);
-  WM_SAVESESSION = (NOTEPADPLUS_USER + 15);
-  WM_SAVECURRENTSESSION  =(NOTEPADPLUS_USER + 16);  // see TSessionInfo
-  WM_GETOPENFILENAMES_PRIMARY = (NOTEPADPLUS_USER + 17);
-  WM_GETOPENFILENAMES_SECOND = (NOTEPADPLUS_USER + 18);
+  NPPM_GETNBSESSIONFILES = (NOTEPADPLUS_USER + 13);
+  NPPM_GETSESSIONFILES = (NOTEPADPLUS_USER + 14);
+  NPPM_SAVESESSION = (NOTEPADPLUS_USER + 15);
+  NPPM_SAVECURRENTSESSION  =(NOTEPADPLUS_USER + 16);  // see TSessionInfo
+  NPPM_GETOPENFILENAMESPRIMARY = (NOTEPADPLUS_USER + 17);
+  NPPM_GETOPENFILENAMESSECOND = (NOTEPADPLUS_USER + 18);
   WM_GETPARENTOF = (NOTEPADPLUS_USER + 19);
-  WM_CREATESCINTILLAHANDLE = (NOTEPADPLUS_USER + 20);
-  WM_DESTROYSCINTILLAHANDLE = (NOTEPADPLUS_USER + 21);
-  WM_GETNBUSERLANG = (NOTEPADPLUS_USER + 22);
-  WM_GETCURRENTDOCINDEX = (NOTEPADPLUS_USER + 23);
+  NPPM_CREATESCINTILLAHANDLE = (NOTEPADPLUS_USER + 20);
+  NPPM_DESTROYSCINTILLAHANDLE = (NOTEPADPLUS_USER + 21);
+  NPPM_GETNBUSERLANG = (NOTEPADPLUS_USER + 22);
+  NPPM_GETCURRENTDOCINDEX = (NOTEPADPLUS_USER + 23);
     MAIN_VIEW = 0;
     SUB_VIEW = 1;
 
-  WM_SETSTATUSBAR = (NOTEPADPLUS_USER + 24);
+  NPPM_SETSTATUSBAR = (NOTEPADPLUS_USER + 24);
     STATUSBAR_DOC_TYPE = 0;
     STATUSBAR_DOC_SIZE = 1;
     STATUSBAR_CUR_POS = 2;
@@ -68,67 +68,83 @@ const
     STATUSBAR_UNICODE_TYPE = 4;
     STATUSBAR_TYPING_MODE = 5;
 
-  WM_GETMENUHANDLE = (NOTEPADPLUS_USER + 25);
+  NPPM_GETMENUHANDLE = (NOTEPADPLUS_USER + 25);
     NPPPLUGINMENU = 0;
 
-  WM_ENCODE_SCI = (NOTEPADPLUS_USER + 26);
+  NPPM_ENCODESCI = (NOTEPADPLUS_USER + 26);
   //ascii file to unicode
   //int WM_ENCODE_SCI(MAIN_VIEW/SUB_VIEW, 0)
   //return new unicodeMode
 
-  WM_DECODE_SCI = (NOTEPADPLUS_USER + 27);
+  NPPM_DECODESCI = (NOTEPADPLUS_USER + 27);
   //unicode file to ascii
   //int WM_DECODE_SCI(MAIN_VIEW/SUB_VIEW, 0)
   //return old unicodeMode
 
-  WM_ACTIVATE_DOC = (NOTEPADPLUS_USER + 28);
+  NPPM_ACTIVATEDOC = (NOTEPADPLUS_USER + 28);
   //void WM_ACTIVATE_DOC(int index2Activate, int view)
 
-  WM_LAUNCH_FINDINFILESDLG = (NOTEPADPLUS_USER + 29);
+  NPPM_LAUNCHFINDINFILESDLG = (NOTEPADPLUS_USER + 29);
   //void WM_LAUNCH_FINDINFILESDLG(char * dir2Search, char * filtre)
 
-  WM_DMM_SHOW = (NOTEPADPLUS_USER + 30);
-  WM_DMM_HIDE	= (NOTEPADPLUS_USER + 31);
-  WM_DMM_UPDATEDISPINFO = (NOTEPADPLUS_USER + 32);
+  NPPM_DMMSHOW = (NOTEPADPLUS_USER + 30);
+  NPPM_DMMHIDE	= (NOTEPADPLUS_USER + 31);
+  NPPM_DMMUPDATEDISPINFO = (NOTEPADPLUS_USER + 32);
   //void WM_DMM_xxx(0, tTbData->hClient)
 
-  WM_DMM_REGASDCKDLG = (NOTEPADPLUS_USER + 33);
+  NPPM_DMMREGASDCKDLG = (NOTEPADPLUS_USER + 33);
   //void WM_DMM_REGASDCKDLG(0, &tTbData)
 
-  WM_LOADSESSION = (NOTEPADPLUS_USER + 34);
+  NPPM_LOADSESSION = (NOTEPADPLUS_USER + 34);
   //void WM_LOADSESSION(0, const char* file name)
-  WM_DMM_VIEWOTHERTAB = (NOTEPADPLUS_USER + 35);
+  NPPM_DMMVIEWOTHERTAB = (NOTEPADPLUS_USER + 35);
   //void WM_DMM_VIEWOTHERTAB(0, tTbData->hClient)
-  WM_RELOADFILE = (NOTEPADPLUS_USER + 36);
+  NPPM_RELOADFILE = (NOTEPADPLUS_USER + 36);
   //BOOL WM_RELOADFILE(BOOL withAlert, char *filePathName2Reload)
-  WM_SWITCHTOFILE = (NOTEPADPLUS_USER + 37);
+  NPPM_SWITCHTOFILE = (NOTEPADPLUS_USER + 37);
   //BOOL WM_SWITCHTOFILE(0, char *filePathName2switch)
-  WM_SAVECURRENTFILE = (NOTEPADPLUS_USER + 38);
+  NPPM_SAVECURRENTFILE = (NOTEPADPLUS_USER + 38);
   //BOOL WM_SWITCHTOFILE(0, 0)
-  WM_SAVEALLFILES	= (NOTEPADPLUS_USER + 39);
+  NPPM_SAVEALLFILES	= (NOTEPADPLUS_USER + 39);
   //BOOL WM_SAVEALLFILES(0, 0)
-  WM_PIMENU_CHECK	= (NOTEPADPLUS_USER + 40);
+  NPPM_SETMENUITEMCHECK	= (NOTEPADPLUS_USER + 40);
   //void WM_PIMENU_CHECK(UINT	funcItem[X]._cmdID, TRUE/FALSE)
-
-  WM_ADDTOOLBARICON = (NOTEPADPLUS_USER + 41); // see TToolbarIcons
+  NPPM_ADDTOOLBARICON = (NOTEPADPLUS_USER + 41); // see TToolbarIcons
   //void WM_ADDTOOLBARICON(UINT funcItem[X]._cmdID, toolbarIcons icon)
-
-  WM_GETWINDOWSVERSION = (NOTEPADPLUS_USER + 42);
+  NPPM_GETWINDOWSVERSION = (NOTEPADPLUS_USER + 42);
   //winVer WM_GETWINDOWSVERSION(0, 0)
+  NPPM_DMMGETPLUGINHWNDBYNAME = (NOTEPADPLUS_USER + 43);
+  //HWND WM_DMM_GETPLUGINHWNDBYNAME(const char *windowName, const char *moduleName)
+  // if moduleName is NULL, then return value is NULL
+  // if windowName is NULL, then the first found window handle which matches with the moduleName will be returned
+  NPPM_MAKECURRENTBUFFERDIRTY = (NOTEPADPLUS_USER + 44);
+  //BOOL NPPM_MAKECURRENTBUFFERDIRTY(0, 0)
+  NPPM_GETENABLETHEMETEXTUREFUNC = (NOTEPADPLUS_USER + 45);
+  //BOOL NPPM_GETENABLETHEMETEXTUREFUNC(0, 0)
+  NPPM_GETPLUGINSCONFIGDIR = (NOTEPADPLUS_USER + 46);
+  //void NPPM_GETPLUGINSCONFIGDIR(int strLen, char *str)
 
   // Notification code
   NPPN_FIRST = 1000;
   NPPN_READY = (NPPN_FIRST + 1);
+  // To notify plugins that all the procedures of launchment of notepad++ are done.
   //scnNotification->nmhdr.code = NPPN_READY;
   //scnNotification->nmhdr.hwndFrom = hwndNpp;
   //scnNotification->nmhdr.idFrom = 0;
 
   NPPN_TB_MODIFICATION = (NPPN_FIRST + 2);
+  // To notify plugins that toolbar icons can be registered
   //scnNotification->nmhdr.code = NPPN_TB_MODIFICATION;
   //scnNotification->nmhdr.hwndFrom = hwndNpp;
   //scnNotification->nmhdr.idFrom = 0;
 
-   RUNCOMMAND_USER    = (WM_USER + 3000);
+  NPPN_FILEBEFORECLOSE = (NPPN_FIRST + 3);
+  // To notify plugins that the current file is about to be closed
+  //scnNotification->nmhdr.code = NPPN_FILEBEFORECLOSE;
+  //scnNotification->nmhdr.hwndFrom = hwndNpp;
+  //scnNotification->nmhdr.idFrom = 0;
+
+  RUNCOMMAND_USER    = (WM_USER + 3000);
     VAR_NOT_RECOGNIZED = 0;
     FULL_CURRENT_PATH = 1;
     CURRENT_DIRECTORY = 2;
@@ -137,20 +153,17 @@ const
     EXT_PART = 5;
     CURRENT_WORD = 6;
     NPP_DIRECTORY = 7;
-  WM_GET_FULLCURRENTPATH = (RUNCOMMAND_USER + FULL_CURRENT_PATH);
-  WM_GET_CURRENTDIRECTORY = (RUNCOMMAND_USER + CURRENT_DIRECTORY);
-  WM_GET_FILENAME = (RUNCOMMAND_USER + FILE_NAME);
-  WM_GET_NAMEPART = (RUNCOMMAND_USER + NAME_PART);
-  WM_GET_EXTPART = (RUNCOMMAND_USER + EXT_PART);
-  WM_GET_CURRENTWORD = (RUNCOMMAND_USER + CURRENT_WORD);
-  WM_GET_NPPDIRECTORY = (RUNCOMMAND_USER + NPP_DIRECTORY);
+  NPPM_GETFULLCURRENTPATH = (RUNCOMMAND_USER + FULL_CURRENT_PATH);
+  NPPM_GETCURRENTDIRECTORY = (RUNCOMMAND_USER + CURRENT_DIRECTORY);
+  NPPM_GETFILENAME = (RUNCOMMAND_USER + FILE_NAME);
+  NPPM_GETNAMEPART = (RUNCOMMAND_USER + NAME_PART);
+  NPPM_GETEXTPART = (RUNCOMMAND_USER + EXT_PART);
+  NPPM_GETCURRENTWORD = (RUNCOMMAND_USER + CURRENT_WORD);
+  NPPM_GETNPPDIRECTORY = (RUNCOMMAND_USER + NPP_DIRECTORY);
 
   MACRO_USER    = (WM_USER + 4000);
   WM_ISCURRENTMACRORECORDED = (MACRO_USER + 01);
   WM_MACRODLGRUNMACRO       = (MACRO_USER + 02);
-
-
-
 
 
 { Humm.. is tis npp specific? }
@@ -168,7 +181,6 @@ const
 {
 #define WM_FINDINFILES			  	(SCINTILLA_USER + 9)
 }
-
 
 { docking.h }
 //   defines for docking manager
@@ -234,13 +246,6 @@ type
 
   PFUNCPLUGINCMD = procedure; cdecl;
 
-  TFuncItem = record
-    ItemName: String[FuncItemNameLen];
-    Func: PFUNCPLUGINCMD;
-    CmdID: Integer; // lahjo bi skinil
-    Checked: Boolean;
-    ShortcutKey: PShortcutKey;
-  end;
   _TFuncItem = record
     ItemName: Array[0..FuncItemNameLen-1] of Char;
     Func: PFUNCPLUGINCMD;
@@ -248,7 +253,6 @@ type
     Checked: Boolean;
     ShortcutKey: PShortcutKey;
   end;
-  PFuncItem = ^_TFuncItem;
 
   TToolbarData = record
     ClientHandle: HWND;
@@ -263,34 +267,31 @@ type
   end;
 
   TNppPlugin = class(TObject)
-    private
-    protected
-      PluginName: String;
-      FuncArray: array of _TFuncItem;
-      //FuncCount: Integer;
-      //procedure AddFunc(Func: TFuncItem);
-      //function GetFunc(i: Integer): PFuncItem;
-    public
-      NppData: TNppData;
-      constructor Create;
-      destructor Destroy; override;
+  protected
+    PluginName: String;
+    FuncArray: array of _TFuncItem;
+    function GetPluginsConfigDir: string;
+  public
+    NppData: TNppData;
+    constructor Create;
+    destructor Destroy; override;
+    procedure BeforeDestruction; override;
 
-      // needed for DLL export.. wrappers are in the main dll file.
-      procedure SetInfo(NppData: TNppData);
-      function GetName: PChar;
-      function GetFuncsArray(var FuncsCount: Integer): Pointer;
-      procedure BeNotified(sn: PSCNotification); virtual;
-      procedure MessageProc(var Msg: TMessage); virtual;
+    // needed for DLL export.. wrappers are in the main dll file.
+    procedure SetInfo(NppData: TNppData);
+    function GetName: PChar;
+    function GetFuncsArray(var FuncsCount: Integer): Pointer;
+    procedure BeNotified(sn: PSCNotification); virtual;
+    procedure MessageProc(var Msg: TMessage); virtual;
 
-      // usefull stuff
-      procedure RegisterDockingForm(form: TForm{TNppDockingForm});
+    // usefull stuff
+    procedure RegisterDockingForm(form: TForm{TNppDockingForm});
 
-      // df
-      function DoOpen(filename: String): boolean; overload;
-      function DoOpen(filename: String; Line: Integer): boolean; overload;
-      procedure GetFileLine(var filename: String; var Line: Integer);
-      function GetWord: string;
-
+    // df
+    function DoOpen(filename: String): boolean; overload;
+    function DoOpen(filename: String; Line: Integer): boolean; overload;
+    procedure GetFileLine(var filename: String; var Line: Integer);
+    function GetWord: string;
   end;
 
 implementation
@@ -298,35 +299,21 @@ implementation
 uses
   NppDockingForm;
 { TNppPlugin }
-{
-procedure TNppPlugin.AddFunc(Func: TFuncItem);
-var sk: PShortcutKey;
-begin
-  if (self.FFuncCount = MaxFuncs) then
-  begin
-    ShowMessage('No more space for functions');
-    exit;
-  end;
-  inc(self.FFuncCount);
-  // copy shortcut key
-  sk := nil;
-  if (Func.ShortcutKey <> nil) then
-  begin
-    New(sk);
-    sk^.IsCtrl := Func.ShortcutKey^.IsCtrl;
-    sk^.IsAlt := Func.ShortcutKey^.IsAlt;
-    sk^.IsShift := Func.ShortcutKey^.IsShift;
-    sk^.Key := Func.ShortcutKey^.Key;
-  end;
 
-  StrLCopy(self.FFuncArray[self.FFuncCount].ItemName, Pchar(String(Func.ItemName)), FuncItemNameLen); // yet another WTF
-  self.FFuncArray[self.FFuncCount].Func := Func.Func;
-  self.FFuncArray[self.FFuncCount].CmdID := Func.CmdID; // could use FFuncCount
-  self.FFuncArray[self.FFuncCount].Checked := Func.Checked;
-  self.FFuncArray[self.FFuncCount].ShortcutKey := sk; // wtf??
-
-end;
+{ This is hacking for troubble...
+  We need to unset the Application handler so that the forms
+  don't get berserk and start throwing OS error 1004.
+  This happens because the main NPP HWND is already lost when the
+  DLL_PROCESS_DETACH gets called, and the form tries to allocate a new
+  handler for sending the "close" windows message...
 }
+procedure TNppPlugin.BeforeDestruction;
+begin
+  Application.Terminate;
+  Application.Handle := 0;
+  inherited;
+end;
+
 procedure TNppPlugin.BeNotified(sn: PSCNotification);
 begin
   // @todo
@@ -335,7 +322,6 @@ end;
 constructor TNppPlugin.Create;
 begin
   inherited;
-  //self.FuncCount := 0;
 end;
 
 destructor TNppPlugin.Destroy;
@@ -355,7 +341,14 @@ end;
 function TNppPlugin.DoOpen(filename: String): boolean;
 var
   r: integer;
+  s: string;
 begin
+  // ask if we are not already opened
+  SetLength(s, 500);
+  r := SendMessage(self.NppData.NppHandle, NPPM_GETFULLCURRENTPATH, 0, LPARAM(PChar(s)));
+  SetString(s, PChar(s), strlen(PChar(s)));
+  Result := true;
+  if (s = filename) then exit;
   r := SendMessage(self.NppData.NppHandle, WM_DOOPEN, 0, LPARAM(PChar(filename)));
   Result := (r=0);
 end;
@@ -377,7 +370,7 @@ var
 begin
   s := '';
   SetLength(s, 300);
-  SendMessage(self.NppData.NppHandle, WM_GET_FULLCURRENTPATH,0, LPARAM(PChar(s)));
+  SendMessage(self.NppData.NppHandle, NPPM_GETFULLCURRENTPATH,0, LPARAM(PChar(s)));
   SetLength(s, StrLen(PChar(s)));
   filename := s;
 
@@ -385,12 +378,7 @@ begin
   Line := SendMessage(self.NppData.ScintillaMainHandle, SciSupport.SCI_LINEFROMPOSITION, r, 0);
 
 end;
-{
-function TNppPlugin.GetFunc(i: Integer): PFuncItem;
-begin
 
-end;
-}
 function TNppPlugin.GetFuncsArray(var FuncsCount: Integer): Pointer;
 begin
   FuncsCount := Length(self.FuncArray);
@@ -402,18 +390,39 @@ begin
   Result := PChar(self.PluginName);
 end;
 
+function TNppPlugin.GetPluginsConfigDir: string;
+var
+  s: string;
+  r: integer;
+begin
+  SetLength(s, 1001);
+  r := SendMessage(self.NppData.NppHandle, NPPM_GETPLUGINSCONFIGDIR, 1000, LPARAM(PChar(s)));
+  SetString(s, PChar(s), StrLen(PChar(s)));
+  Result := s;
+end;
+
 function TNppPlugin.GetWord: string;
 var
   s: string;
 begin
   SetLength(s, 800);
-  SendMessage(self.NppData.NppHandle, WM_GET_CURRENTWORD,0,LPARAM(PChar(s)));
+  SendMessage(self.NppData.NppHandle, NPPM_GETCURRENTWORD,0,LPARAM(PChar(s)));
   Result := s;
 end;
 
 procedure TNppPlugin.MessageProc(var Msg: TMessage);
+var
+  hm: HMENU;
+  i: integer;
 begin
-
+  if (Msg.Msg = WM_CREATE) then
+  begin
+    // Change - to separator items
+    hm := GetMenu(self.NppData.NppHandle);
+    for i:=0 to Length(self.FuncArray)-1 do
+      if (self.FuncArray[i].ItemName = '-') then
+        ModifyMenu(hm, self.FuncArray[i].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
+  end;
 end;
 
 procedure TNppPlugin.RegisterDockingForm(form: TForm{TNppDockingForm});
@@ -443,12 +452,13 @@ begin
   GetModuleFileName(0, tmp, 1000);
   td.ModuleName := tmp;
 
-  r:=SendMessage(self.NppData.NppHandle, WM_DMM_REGASDCKDLG, 0, Integer(@td));
+  r:=SendMessage(self.NppData.NppHandle, NPPM_DMMREGASDCKDLG, 0, Integer(@td));
 end;
 
 procedure TNppPlugin.SetInfo(NppData: TNppData);
 begin
   self.NppData := NppData;
+  Application.Handle := NppData.NppHandle;
 end;
 
 end.

@@ -52,4 +52,12 @@ object DebugEvalForm1: TDebugEvalForm1
     ItemHeight = 13
     TabOrder = 0
   end
+  object CheckBoxReuseResult: TCheckBox
+    Left = 8
+    Top = 40
+    Width = 129
+    Height = 17
+    Caption = 'Open in same window'
+    TabOrder = 3
+  end
 end

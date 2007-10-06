@@ -19,7 +19,14 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-I would say, evolving pre-0.4-a. q:)
+Version 0.5. Still in alpha phase, because some things don't work as they should.
+
+NOTE
+
+I want to emphasize again how this works. This .dll is a Notepad++ plugin. It
+gives Notepad++ the ability to act as a DBGP DEBUGGING CLIENT. To actually debug
+some PHP code, you also need a SERVER SIDE DEBUGGING ENGINE. That would be XDebug
+(http://www.xdebug.com).
 
 FEATURES / TODOS
  
@@ -34,13 +41,13 @@ FEATURES / TODOS
 + breakpoint indicator (SCI)
 + tracing command (step into, over, out, run)
 + tracing indicator (SCI)
-- fast eval on mouse dwell (or at least some help with evaling)
+/ fast eval on mouse dwell
 ? STDOUT redirect (log child?)
 - STDERR redirect (log child?)
-- watch child
++ watch child
 / NL convert (needs tweaking)
-/ toolbar icons (step into, over, out, run, add and remove breakpoint, child icons?)
-- run to cursor
+/ toolbar icons (step into, over, out, run to, run, add and remove breakpoint, child icons?)
++ run to cursor
 / DBGp proxy support
 + file mapping (server ip based)
 + dbgp error processing...
@@ -55,9 +62,22 @@ INSTALL
 
 Just drop the dbgpPlugin.dll into you Notepad++ plugins directory.
 Note: This plugin uses a set of shortcuts for debugging actions (run, eval,
-step...) that were taken from Delphi. F9 that is used for "Run" conflicts
+step...) that were taken from Delphi. F9 that is used for "Run", conflicts
 with a command from ConvertExt plugin. Also F7 could conflict if it is
 enabled.
+
+Try to look at this too:
+http://www.ourwikicommunity.com/wiki/How_to_Setup_BDGp_debugger_in_Notepad%2B%2B_to_Debug_PHP
+
+SERVER SIDE INSTALL
+
+Download xdebug binary that suites your needs. You should read the instructions
+over at http://www.xdebug.com/docs/remote how to set it up, here is just a
+quick start:
+xdebug.remote_enable=On 
+xdebug.remote_host=127.0.0.1
+xdebug.remote_enable=1
+xdebug.remote_handler=dbgp
 
 USAGE
 
@@ -109,7 +129,7 @@ a "Step into" now, so that the relevant file will open.
 
 Stepping
 Once connected and in a starting or break state you can step around using
-Step out, Step into, Step over and Run (Continue).
+Step out, Step into, Step over, Run to and Run (Continue).
 
 Breakpoints
 As of 0.2 there is a breakpoint child window and a breakpoint button. Use the
@@ -136,6 +156,12 @@ A stack is printed when stepping thru code. Double click on a row to go to that
 stack point. Right click on a stack row to get the local context from that stack
 level.
 
+Watch
+A Watch child gives values of watched variables on each step. A context menu is
+available for adding and removing variables.
+The variable display form now (since v0.5) show difference from last update in
+red color.
+
 Misc
 There is a "Turn OFF"/"Turn ON" button. It closes the listening socket. This
 is usefull if you work on a page that loads a bunch of banners that are
@@ -151,3 +177,4 @@ THANKS
 - I guess Derick for creating this kickass debugging engine (http://www.xdebug.org).
 - Don for Notepad++.
 - Chris for being the first to test-drive this thing and giving usefull sugestions.
+- JC / Traveller from www.OurWikiCommunity.com for the nice wiki help page.

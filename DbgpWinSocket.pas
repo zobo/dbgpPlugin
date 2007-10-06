@@ -23,7 +23,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, ScktComp, WinSock, XMLDoc, XMLDOM, XMLIntf,
-  {IdCoder3To4, }StrUtils, Dialogs, Variants, Base64, IdGlobal;
+  {IdCoder3To4, }StrUtils, Dialogs, Variants, Base64, IdGlobal, Forms;
 
 type
 //  TDbgpWinSocket = class;
@@ -86,6 +86,11 @@ type
     expression: string;
   end;
   TBreakpoints = array of TBreakpoint;
+  TAsyncDbgpCall = record
+    TransID: string;
+    CallData: string;
+    XMLData: string;
+  end;
 //  TBreak = ();
   TStackList = array of TStackItem;
   TStackCB = procedure(Sender: TDbgpWinSocket; Stack: TStackList) of Object;
@@ -106,6 +111,7 @@ type
     remote_unix: boolean;
     last_source_request: string;
     source_files: TStringList;
+    AsyncDbgpCall: TAsyncDbgpCall;
   protected
     { Protected declarations }
     FOnDbgpStack: TStackCB;
@@ -127,10 +133,13 @@ type
     function ProcessResponse_breakpoint_set: String;
     function ProcessResponse_breakpoint_list: String;
     function ProcessResponse_source: String;
+    function ProcessResponse_property_get: String;
     function ProcessResponse: String;
 
     procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems); overload;
     procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems; ParentItem: PPropertyItem); overload;
+    function WaitForAsyncAnswer(call_data: string): boolean;
+    function CheckForError(varxml: IXMLNodeList): string;
   public
     { Public declarations }
     maps: TMaps;
@@ -138,6 +147,7 @@ type
     debugdata: TStringList;
     stack: TStackList;
     Transaction_id: String;
+    last_response_command: String;
     constructor Create(Socket: TSocket; ServerWinSocket: TServerWinSocket);
     destructor Destroy; override;
     function ReadDBGP: String;
@@ -154,7 +164,9 @@ type
     procedure RemoveBreakpoint(bp: TBreakpoint);
     procedure GetSource(filename: String);
     procedure Resume(runtype: TRun);
-    procedure SendEval(data:String);
+    procedure SendEval(data: String);
+    function GetPropertyAsync(data: String): string; overload;
+    function GetPropertyAsync(data: String; var list: TPropertyItems): string; overload;
     function SendCommand(Cmd: String; Args: String; Base64:String): Integer; overload;
     function SendCommand(Cmd: String; Args: String): Integer; overload;
     function SendCommand(Cmd: String): Integer; overload;
@@ -169,6 +181,10 @@ type
     property OnDbgpBreakpoints: TBreakpointsCB read FOnDbgpBreakpoints write FOnDbgpBreakpoints;
   end;
 
+
+procedure FreePropertyItems(list: TPropertyItems);
+//procedure DuplicatePropertyItems(var list: TPropertyItems);
+
 implementation
 
 { TDbgpWinSocket }
@@ -181,9 +197,11 @@ begin
   self.TransID := 1; // internal counter
   self.debugdata := TStringList.Create;
   self.Transaction_id := ''; // return transaction
+  self.last_response_command := '';
   self.remote_unix := true;
   self.source_files := TStringList.Create;
   self.source_files.CaseSensitive := true;
+  self.AsyncDbgpCall.TransID := ''; // not set
 end;
 destructor TDbgpWinSocket.Destroy;
 var
@@ -432,7 +450,7 @@ Recv(672): <?xml version="1.0" encoding="iso-8859-1"?>
     //Assert((x.NodeName = 'property'),'Property node actually not "property"!!')
     if (x.NodeName <> 'property') then
     begin
-      ShowMessage('Property node actually not "property"!!');
+      //ShowMessage('Property node actually not "property"!!');
       exit;
     end;
 
@@ -557,10 +575,10 @@ begin
     if (varxml[i].Attributes['filename'] <> '') then
       bps[i].filename := self.MapRemoteToLocal(varxml[i].Attributes['filename']);
     try bps[i].lineno := StrToInt(varxml[i].Attributes['lineno']); except on EConvertError do bps[i].lineno := 0; end;
-    bps[i].state := (varxml[i].Attributes['state']='enabled');
+    bps[i].state := (varxml[i].Attributes['state'] <> 'disabled');
     bps[i].functionname := varxml[i].Attributes['function'];
     bps[i].classname := varxml[i].Attributes['class'];
-    bps[i].temporary := (varxml[i].Attributes['temporary'] = '1');
+    bps[i].temporary := (varxml[i].Attributes['state'] = 'temporary');
     try bps[i].hit_count := StrToInt(varxml[i].Attributes['hit_count']); except on EConvertError do bps[i].hit_count := 0; end;
     try bps[i].hit_value := StrToInt(varxml[i].Attributes['hit_value']); except on EConvertError do bps[i].hit_value := 0; end;
     bps[i].hit_condition := varxml[i].Attributes['hit_condition'];
@@ -705,6 +723,31 @@ begin
   end;
 end;
 
+//
+function TDbgpWinSocket.ProcessResponse_property_get: String;
+var
+  list: TPropertyItems;
+begin
+  self.ProcessProperty(self.xml.ChildNodes[1].ChildNodes, list);
+  //if (Assigned(self.FOnDbgpEval)) then
+  //  self.FOnDbgpEval(self,-1,list);
+  FreePropertyItems(list);
+end;
+
+function TDbgpWinSocket.CheckForError(varxml: IXMLNodeList): string;
+begin
+  Result := '';
+  if (varxml[1].HasChildNodes) and (varxml[1].ChildNodes[0].NodeName = 'error') then
+  begin
+    Result := 'DBGP Error: '+
+      'Response type: '+varxml[1].NodeName+' '+
+      'Command: '+varxml[1].Attributes['command']+' '+
+      'Error code: '+varxml[1].ChildNodes[0].Attributes['code']+' '+
+      'Error: '+varxml[1].ChildNodes[0].Attributes['apperr']+' '+
+      'Error message: '+varxml[1].ChildNodes[0].ChildNodes[0].ChildNodes[0].Text;
+  end;
+end;
+
 // returnes the read data and does all processing...
 function TDbgpWinSocket.ReadDBGP: String;
 var
@@ -713,7 +756,7 @@ var
 begin
   s := self.ReceiveText;
   s := self.buffer + s;
-  
+
   if (Length(s) = 0) then exit;
 
   if (s[Length(s)] <> #0) then // message not yet complete... return and wait for better times
@@ -754,6 +797,8 @@ begin
 try
   res := self.xml.ChildNodes[1].NodeName;
   // handle error?
+  s := self.CheckForError(self.xml.ChildNodes);
+{
   if (self.xml.ChildNodes[1].HasChildNodes) and (self.xml.ChildNodes[1].ChildNodes[0].NodeName = 'error') then
   begin
   // better to do an onDbgpError!
@@ -764,13 +809,21 @@ try
       'Error: '+self.xml.ChildNodes[1].ChildNodes[0].Attributes['apperr']+' '+
       'Error message: '+self.xml.ChildNodes[1].ChildNodes[0].ChildNodes[0].ChildNodes[0].Text;
   end;
+}
   if (res = 'init') then
   begin
     r := self.ProcessInit;
   end
   else if (res = 'response') then
   begin
+    self.last_response_command := self.xml.ChildNodes[1].Attributes['command'];
     self.Transaction_id := self.xml.ChildNodes[1].Attributes['transaction_id'];
+    if (self.Transaction_id = self.AsyncDbgpCall.TransID) then
+    begin
+      self.AsyncDbgpCall.XMLData := s2; // save XML data
+      s := ''; // clear possible errors...
+    end
+    else
     if (self.xml.ChildNodes[1].Attributes['command'] = 'stack_get') then
     r := self.ProcessResponse_stack
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'eval') then
@@ -783,6 +836,8 @@ try
     r := self.ProcessResponse_breakpoint_list
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'source') then
     r := self.ProcessResponse_source
+    else if (self.xml.ChildNodes[1].Attributes['command'] = 'property_get') then
+    r := self.ProcessResponse_property_get
     else
     r := self.ProcessResponse;
   end
@@ -926,6 +981,81 @@ begin
   // maps?
   self.last_source_request := filename;
   self.SendCommand('source', '-f '+filename);
+end;
+
+
+{ Async call handling }
+function TDbgpWinSocket.WaitForAsyncAnswer(call_data: string): boolean;
+begin
+  Result := false;
+  if (self.AsyncDbgpCall.TransID <> '') then exit;    // curenty only on async call at a time
+
+  self.AsyncDbgpCall.TransID := IntToStr(self.TransID-1);
+  self.AsyncDbgpCall.CallData := call_data;
+  self.AsyncDbgpCall.XMLData := '';
+
+  Result := true;
+  while (self.AsyncDbgpCall.XMLData = '') do
+  begin
+    Application.ProcessMessages;
+    // check for timeout!
+  end;
+  self.AsyncDbgpCall.TransID := ''; // cleanup
+  // humm
+
+end;
+
+function TDbgpWinSocket.GetPropertyAsync(data: String): string;
+var
+  list: TPropertyItems;
+begin
+  Result := self.GetPropertyAsync(data, list);
+  if (Result = '') then
+  begin
+    if (Length(list)>0) then
+    begin
+      Result := data + ' = ' + list[0].datatype + ': ' + list[0].data;
+    end;
+    FreePropertyItems(list);
+  end
+  else
+  begin
+    Result := data + ' = ' + Result;
+  end;
+end;
+
+function TDbgpWinSocket.GetPropertyAsync(data: String;
+  var list: TPropertyItems): string;
+var
+  xml: IXMLDocument;
+begin
+  self.SendCommand('property_get', '-n '+data);
+  Result := 'Error...';
+  SetLength(list, 1);
+  list[0].fullname := data;
+  list[0].datatype := 'Error';
+  list[0].children := nil;
+  list[0].data := 'Error in request.';
+  if (not self.WaitForAsyncAnswer(data)) then
+  begin
+    exit;
+  end;
+
+  try
+    xml := TXMLDocument.Create(nil);
+    xml.Options := [];
+    xml.XML.Add(self.AsyncDbgpCall.XMLData);
+    xml.Active := true;
+
+    Result := self.CheckForError(xml.ChildNodes);
+    if (Result = '') then
+      self.ProcessProperty(xml.ChildNodes[1].ChildNodes, list)
+    else
+      list[0].data := Result;
+  finally
+    if (xml<>nil) then xml.Active := false;
+    xml := nil;
+  end;
 end;
 
 end.

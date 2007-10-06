@@ -75,7 +75,7 @@ end;
 
 procedure TNppDockingForm.Show;
 begin
-  SendMessage(self.Npp.NppData.NppHandle, WM_DMM_SHOW, 0, LPARAM(self.Handle));
+  SendMessage(self.Npp.NppData.NppHandle, NPPM_DMMSHOW, 0, LPARAM(self.Handle));
   inherited;
 end;
 

@@ -25,10 +25,12 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, NppDockingForm, StdCtrls, ScktComp, DbgpWinSocket, ComCtrls,
   Buttons, ExtCtrls, Grids, JvDockTree, JvDockControlForm, JvDockVCStyle,
-  JvComponentBase, DebugStackForm, DebugVarForm, JvDockVIDStyle, JvDockVSNetStyle,
-  DebugEvalForm, DebugRawForm, ImgList, ToolWin, DebugBreakpointsForm;
+  JvComponentBase, DebugStackForm, DebugVarForms, JvDockVIDStyle, JvDockVSNetStyle,
+  DebugEvalForm, DebugRawForm, ImgList, ToolWin, DebugBreakpointsForm,
+  DebugContextForms, DebugWatchForms;
 
 type
+  TDebugChildType = ( dctWatches, dctGlobalContext, dctLocalContect, dctBreakpoints, dctStack );
   TNppDockingForm1 = class(TNppDockingForm)
     ServerSocket1: TServerSocket;
     JvDockServer1: TJvDockServer;
@@ -42,6 +44,7 @@ type
     BitBtnClose: TBitBtn;
     BitBtnRaw: TBitBtn;
     Label1: TLabel;
+    BitBtnRunTo: TBitBtn;
     procedure FormCreate(Sender: TObject);
     procedure ServerSocket1Accept(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -61,9 +64,10 @@ type
     procedure BitBtnEvalClick(Sender: TObject);
     procedure BitBtnCloseClick(Sender: TObject);
     procedure BitBtnRawClick(Sender: TObject);
+    procedure BitBtnRunToClick(Sender: TObject);
+    // run to cursor
   private
     { Private declarations }
-    state: TDbgpState;
     procedure sockDbgpStack(Sender:TDbgpWinSocket; Stack: TStackList);
     procedure sockDbgpInit(Sender:TDbgpWinSocket; init: TInit);
     procedure sockDbgpEval(Sender: TDbgpWinSocket; context: Integer; list: TPropertyItems);
@@ -78,23 +82,29 @@ type
     procedure BreakpointAdd(Sender: TComponent; bp: TBreakpoint);
     procedure BreakpointEdit(Sender: TComponent; bp: TBreakpoint);
     procedure BreakpointDelete(Sender: TComponent; bp: TBreakpoint);
-    procedure StackSelect(Sender: TObject; filename: String; lineno: integer);
+    procedure StackSelect(Sender: TObject; filename: String; lineno: integer; Depth: integer);
+
+    procedure WatchesOnChange(Sender: TObject; Watches: TPropertyItems);
 
   public
     { Public declarations }
+    state: TDbgpState; // hmmm read only?
     sock: TDbgpWinSocket;
     DebugStackForm1: TDebugStackForm1;
-    ContextLocalForm1: TDebugVarForm1;
-    ContextGlobalForm1: TDebugVarForm1;
+    ContextLocalForm1: TDebugContextForm;
+    ContextGlobalForm1: TDebugContextForm;
     DebugEvalForm1: TDebugEvalForm1;
     DebugRawForm1: TDebugRawForm1;
     DebugBreakpointsForm1: TDebugBreakpointsForm1;
+    EvalVarForm: TDebugVarForm;
+    DebugWatchForm: TDebugWatchFrom;
     destructor Destroy; override;
     procedure GotoLine(filename: string; Lineno:Integer);
     procedure DoResume(runtype: TRun);
     procedure DoEval; overload;
     procedure DoEval(data:string); overload;
     procedure SetState(state: TDbgpState);
+    procedure Open(childtype: TDebugChildType; Show: boolean);
   end;
 
 var
@@ -116,42 +126,25 @@ end;
 
 procedure TNppDockingForm1.FormCreate(Sender: TObject);
 begin
-  // laho bi tle zacel poslusat za dwell
-  self.DebugStackForm1 := TDebugStackForm1.Create(self);
-  self.DebugStackForm1.OnGetContext := self.StackOnGetContext;
-  self.DebugStackForm1.OnStackSelect := self.StackSelect;
-  //self.DebugStackForm1.Npp := self.Npp;
-
-  // local context...
-  self.ContextLocalForm1 := TDebugVarForm1.Create(self);
-  self.ContextLocalForm1.Npp := self.Npp;
-  self.ContextLocalForm1.OnRefresh := self.ContextOnRefresh;
-  self.ContextLocalForm1.Tag := 0;
-  self.ContextLocalForm1.Caption := 'Local context';
-  // global context
-  self.ContextGlobalForm1 := TDebugVarForm1.Create(self);
-  self.ContextGlobalForm1.Npp := self.Npp;
-  self.ContextGlobalForm1.OnRefresh := self.ContextOnRefresh;
-  self.ContextGlobalForm1.Tag := 1;
-  self.ContextGlobalForm1.Caption := 'Global context';
+  self.Open(dctStack, false);
+  self.Open(dctLocalContect, false);
+  self.Open(dctGlobalContext, false);
 
   ManualTabDock(self.JvDockServer1.BottomDockPanel, self.ContextLocalForm1, self.ContextGlobalForm1);
 
   self.DebugRawForm1 := TDebugRawForm1.Create(self);
-  //self.DebugRawForm1.Npp := self.Npp;
-  //self.DebugRawForm1.Show;
 
   //self.DebugStackForm1.ManualDock(self.JvDockServer1.BottomDockPanel);
   //self.JvDockServer1.BottomDockPanel.ShowDockPanel(true, self.DebugStackForm1);
 
-  self.DebugBreakpointsForm1 := TDebugBreakpointsForm1.Create(self);
-  self.DebugBreakpointsForm1.OnBreakpointAdd := self.BreakpointAdd;
-  self.DebugBreakpointsForm1.OnBreakpointEdit := self.BreakpointEdit;
-  self.DebugBreakpointsForm1.OnBreakpointDelete := self.BreakpointDelete;
+  self.Open(dctBreakpoints, false);
+
   //self.DebugBreakpointsForm1.ManualDock(self.JvDockServer1.BottomDockPanel);
   //self.JvDockServer1.BottomDockPanel.ShowDockPanel(true, self.DebugBreakpointsForm1);
 
   ManualTabDock(self.JvDockServer1.BottomDockPanel, self.DebugStackForm1, self.DebugBreakpointsForm1);
+
+  self.DebugWatchForm := nil;
 
   self.SetState(DbgpWinSocket.dsStopped);
 end;
@@ -162,6 +155,9 @@ begin
   self.SetState(DbgpWinSocket.dsStopped);
   FlashWindow(self.Npp.NppData.NppHandle, true);
   self.Show;
+
+  // gah.. hack
+  (self.Npp as TDbgpNppPlugin).ChangeMenu(dmsConnected);
 
   if (Assigned(self.DebugRawForm1)) then
   begin
@@ -210,10 +206,11 @@ begin
   self.ContextLocalForm1.ClearVars;
   self.ContextGlobalForm1.ClearVars;
   SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 5, 0);
-  //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETEALL, 4, 0);
-  //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, SC_TIME_FOREVER,0);
-
+  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, SC_TIME_FOREVER,0);
+  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_CALLTIPCANCEL, 0, 0);
   self.SetState(dsStopped);
+  // gah.. hack
+  (self.Npp as TDbgpNppPlugin).ChangeMenu(dmsDisconnected);
 end;
 
 procedure TNppDockingForm1.sockDbgpStack(Sender: TDbgpWinSocket; Stack: TStackList);
@@ -229,7 +226,7 @@ begin
   end;
 
   // Do something usefull with this...
-  //SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, 1000,0);
+  SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_SETMOUSEDWELLTIME, 1000,0);
 end;
 
 procedure TNppDockingForm1.sockDbgpInit(Sender: TDbgpWinSocket; init: TInit);
@@ -239,18 +236,12 @@ begin
   self.SetState(DbgpWinSocket.dsStarting);
   self.sock.SetFeature('max_depth','3'); // make configurable
   self.Label1.Caption := 'Connected to '+init.server+' idekey: '+init.idekey+' file: '+init.filename;
-  {
-  if Assigned(self.sock) then
-  begin
-    //self.sock.GetFeature('support_async');
-    //self.sock.SetFeature('notify_ok', '1'); // unsupported by xdebug
-  end;
-  }
   for i:=0 to Length(self.DebugBreakpointsForm1.breakpoints)-1 do
   begin
     self.sock.SetBreakpoint(self.DebugBreakpointsForm1.breakpoints[i]);
   end;
   self.sock.GetBreakpoints;
+  self.DoResume(StepInto);
 end;
 
 procedure TNppDockingForm1.GotoLine(filename: string; Lineno: Integer);
@@ -283,16 +274,26 @@ end;
 
 procedure TNppDockingForm1.sockDbgpEval(Sender: TDbgpWinSocket;
   context: Integer; list: TPropertyItems);
-var
-  x: TDebugVarForm1;
 begin
-  x := TDebugVarForm1.Create(self);
-  x.Npp := self.Npp;
-  x.UseMenu(false);
-  x.SetVars(list);
-  x.Caption := 'Eval';
-  x.DefaultCloseAction := caFree;
-  x.Show;
+  // TODO: fix this possible leak!
+  if (not Assigned(self.DebugEvalForm1)) or (not self.DebugEvalForm1.CheckBoxReuseResult.Checked) then
+  begin
+    if (Assigned(self.EvalVarForm)) then
+    begin
+      self.EvalVarForm.DefaultCloseAction := caFree;
+      self.EvalVarForm := TDebugVarForm.Create(self);
+    end;
+  end;
+
+  if (not Assigned(self.EvalVarForm)) then
+  begin
+    self.EvalVarForm := TDebugVarForm.Create(self);
+  end;
+
+  self.EvalVarForm.SetVars(list);
+  self.EvalVarForm.Caption := 'Eval';
+
+  self.EvalVarForm.Show;
 end;
 
 procedure TNppDockingForm1.sockDbgpBreakpoints(Sender: TDbgpWinSocket;
@@ -352,7 +353,8 @@ begin
     // update stuff
     self.sock.GetBreakpoints;
     if (self.Npp as TDbgpNppPlugin).config.refresh_local then self.sock.GetContext(0);
-    if (self.Npp as TDbgpNppPlugin).config.refresh_remote then self.sock.GetContext(1);
+    if (self.Npp as TDbgpNppPlugin).config.refresh_global then self.sock.GetContext(1);
+    if (Assigned(self.DebugWatchForm)) then self.DebugWatchForm.DoChange;
   end
   else
   begin
@@ -401,6 +403,23 @@ end;
 procedure TNppDockingForm1.BitBtnRunClick(Sender: TObject);
 begin
   self.DoResume(Run);
+end;
+
+procedure TNppDockingForm1.BitBtnRunToClick(Sender: TObject);
+var
+  s: string;
+  i: integer;
+  bp: TBreakpoint;
+begin
+  self.Npp.GetFileLine(s,i);
+  bp.breakpointtype := btLine;
+  bp.filename := s;
+  bp.lineno := i+1;
+  bp.state := true;
+  bp.temporary := true;
+  self.sock.SetBreakpoint(bp);
+  self.DoResume(Run);
+  // do run to
 end;
 
 procedure TNppDockingForm1.BitBtnBreakpointClick(Sender: TObject);
@@ -499,11 +518,11 @@ begin
   stepping := false; evaling := false; breaking := false;
 
   case state of
-  dsStarting: begin stepping := true; breaking := true; end;
+  dsStarting: begin stepping := true;{ breaking := true;} end;
   dsStopping: stepping := true;
   //dsStopped:
   //dsRunning:
-  dsBreak: begin stepping := true; evaling := true; breaking := true; end;
+  dsBreak: begin stepping := true; evaling := true;{ breaking := true;} end;
   end;
 
   breaking := true; { always true, bp child }
@@ -512,12 +531,11 @@ begin
   self.BitBtnStepOver.Enabled := stepping;
   self.BitBtnStepOut.Enabled := stepping;
   self.BitBtnRun.Enabled := stepping;
+  self.BitBtnRunTo.Enabled := stepping;
 
   self.BitBtnEval.Enabled := evaling;
   self.BitBtnBreakpoint.Enabled := breaking;
 end;
-
-
 
 {
 procedure TNppDockingForm1.Button3Click(Sender: TObject);
@@ -579,9 +597,80 @@ begin
 end;
 
 procedure TNppDockingForm1.StackSelect(Sender: TObject; filename: String;
-  lineno: integer);
+  lineno: integer; Depth: Integer);
 begin
   self.GotoLine(filename, lineno);
+end;
+
+procedure TNppDockingForm1.Open(childtype: TDebugChildType; Show: boolean);
+begin
+  case (childtype) of
+  dctWatches:
+    begin
+      if (not Assigned(self.DebugWatchForm)) then self.DebugWatchForm := TDebugWatchFrom.Create(self);
+      self.DebugWatchForm.OnChange := self.WatchesOnChange;
+      if (Show) then self.DebugWatchForm.Show;
+    end;
+  dctStack:
+    begin
+      if (not Assigned(self.DebugStackForm1)) then self.DebugStackForm1 := TDebugStackForm1.Create(self);
+      self.DebugStackForm1.OnGetContext := self.StackOnGetContext;
+      self.DebugStackForm1.OnStackSelect := self.StackSelect;
+      if (Show) then self.DebugStackForm1.Show;
+    end;
+  dctLocalContect:
+    begin
+      if (not Assigned(self.ContextLocalForm1)) then self.ContextLocalForm1 := TDebugContextForm.Create(self);
+      self.ContextLocalForm1.OnRefresh := self.ContextOnRefresh;
+      self.ContextLocalForm1.Tag := 0;
+      self.ContextLocalForm1.Caption := 'Local context';
+      if (Show) then self.ContextLocalForm1.Show;
+    end;
+  dctGlobalContext:
+    begin
+      if (not Assigned(self.ContextGlobalForm1)) then self.ContextGlobalForm1 := TDebugContextForm.Create(self);
+      self.ContextGlobalForm1.OnRefresh := self.ContextOnRefresh;
+      self.ContextGlobalForm1.Tag := 1;
+      self.ContextGlobalForm1.Caption := 'Global context';
+      if (Show) then self.ContextGlobalForm1.Show;
+    end;
+  dctBreakpoints:
+    begin
+      if (not Assigned(self.DebugBreakpointsForm1)) then self.DebugBreakpointsForm1 := TDebugBreakpointsForm1.Create(self);
+      self.DebugBreakpointsForm1.OnBreakpointAdd := self.BreakpointAdd;
+      self.DebugBreakpointsForm1.OnBreakpointEdit := self.BreakpointEdit;
+      self.DebugBreakpointsForm1.OnBreakpointDelete := self.BreakpointDelete;
+      if (Show) then self.DebugBreakpointsForm1.Show;
+    end;
+  end;
+end;
+
+// watches handler
+procedure TNppDockingForm1.WatchesOnChange(Sender: TObject;
+  Watches: TPropertyItems);
+var
+  tmp, res: TPropertyItems;
+  r: string;
+  i: integer;
+begin
+  if (not Assigned(self.DebugWatchForm)) then exit;
+
+  if (self.state in [dsStarting, dsBreak]) and (Assigned(self.sock))then
+  begin
+    SetLength(tmp, Length(Watches));
+    for i:=0 to Length(Watches)-1 do
+    begin
+      r := self.sock.GetPropertyAsync(Watches[i].fullname, res);
+      tmp[i] := res[0];
+      // Note: We do not FreePropertyItems here, as the deeper elemts are pointes and get freed later
+    end;
+    self.DebugWatchForm.SetVars(tmp);
+    FreePropertyItems(tmp);
+  end
+  else
+  begin
+    self.DebugWatchForm.SetVars(Watches);
+  end;
 end;
 
 end.

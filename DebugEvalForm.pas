@@ -30,6 +30,7 @@ type
     Button1: TButton;
     Button2: TButton;
     ComboBox1: TComboBox;
+    CheckBoxReuseResult: TCheckBox;
     procedure Button1Click(Sender: TObject);
   private
     { Private declarations }

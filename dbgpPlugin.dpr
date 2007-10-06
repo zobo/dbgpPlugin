@@ -36,7 +36,6 @@ uses
   DbgpWinSocket in 'DbgpWinSocket.pas',
   ConfigForm in 'ConfigForm.pas' {ConfigForm1},
   DebugStackForm in 'DebugStackForm.pas' {DebugStackForm1},
-  DebugVarForm in 'DebugVarForm.pas' {DebugVarForm1},
   DebugEvalForm in 'DebugEvalForm.pas' {DebugEvalForm1},
   Base64 in 'Base64.pas',
   DebugInspectorForm in 'DebugInspectorForm.pas' {DebugInspectorForm1},
@@ -44,7 +43,11 @@ uses
   AboutForm in 'AboutForm.pas' {AboutForm1},
   DebugBreakpointsForm in 'DebugBreakpointsForm.pas' {DebugBreakpointsForm1},
   DebugBreakpointEditForm in 'DebugBreakpointEditForm.pas' {DebugBreakpointEditForm1},
-  NppForms in 'NppForms.pas' {NppForm};
+  NppForms in 'NppForms.pas' {NppForm},
+  DebugVarForms in 'DebugVarForms.pas' {DebugVarForm},
+  DebugContextForms in 'DebugContextForms.pas' {DebugContextForm},
+  DebugWatchForms in 'DebugWatchForms.pas' {DebugWatchFrom},
+  DebugEditWatchForms in 'DebugEditWatchForms.pas' {DebugEditWatchForm};
 
 {$R *.res}
 
@@ -58,7 +61,6 @@ begin
   end;
   DLL_PROCESS_DETACH:
   begin
-    Application.Terminate;
     Npp.Destroy;
   end;
   //DLL_THREAD_ATTACH: MessageBeep(0);
@@ -68,7 +70,7 @@ end;
 
 procedure setInfo(NppData: TNppData); cdecl; export;
 begin
-  Npp.NppData := NppData;
+  Npp.SetInfo(NppData);
 end;
 
 function getName(): Pchar; cdecl; export;
@@ -80,7 +82,6 @@ function getFuncsArray(var nFuncs:integer):Pointer;cdecl; export;
 begin
   Result := Npp.GetFuncsArray(nFuncs);
 end;
-
 
 procedure beNotified(sn: PSCNotification); cdecl; export;
 begin
