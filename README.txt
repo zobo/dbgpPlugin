@@ -26,7 +26,9 @@ NOTE
 I want to emphasize again how this works. This .dll is a Notepad++ plugin. It
 gives Notepad++ the ability to act as a DBGP DEBUGGING CLIENT. To actually debug
 some PHP code, you also need a SERVER SIDE DEBUGGING ENGINE. That would be XDebug
-(http://www.xdebug.com).
+(http://www.xdebug.com). After all is set up, you start the debugging session
+from your browser (see FireFox XDebug helper extension). The engine (web server)
+connects to the client (Notepad++) and you can do your magic.
 
 FEATURES / TODOS
  
@@ -97,6 +99,7 @@ Remote IP   IDE KEY     Remote Path   Local Path
 10.0.0.1    zobo        /var/www/     W:\
 10.0.0.50               c:\dev\       x:\dev\
 127.0.0.1               d:\dev\       d:\dev\
+10.1.1.3                /home/p1/     DBGP:
 
 The first one is a classic mapping for a remote *nix box, while the second is a
 windows server. Local development should work right away, but if there are problems
