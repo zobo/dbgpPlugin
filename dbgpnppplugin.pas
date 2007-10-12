@@ -472,6 +472,12 @@ begin
     SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETBACK, 4, $000055);
     self.ChangeMenu(dmsOff);
   end;
+  if (Msg.Msg = WM_CLOSE) then
+  begin
+    if (Assigned(self.MainForm)) then self.MainForm.Free;
+    self.MainForm := nil;
+    //self.ChangeMenu(dmsOff);
+  end;
 end;
 
 procedure TDbgpNppPlugin.ReadMaps(var maps: TMaps);

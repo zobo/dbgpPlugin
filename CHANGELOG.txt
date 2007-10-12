@@ -1,3 +1,7 @@
+2007-10-12 v0.5 alpha fix
+
+Added WM_CLOSE processing that should fix the hanging after exit problem. (Waiting for NPP approval).
+
 2007-10-06 v0.5 alpha
 
 About form displays current version and build.
@@ -14,6 +18,7 @@ Reuse eval result form.
 Some window handling changes.
 "Run to" button. (Temporary breakpoints don't work as they should because of XDebug)
 Var child shows changes in data tree.
+Watch child.
 Few code cleanups, updated constants.
 
 2007-09-05 v0.4 alpha
