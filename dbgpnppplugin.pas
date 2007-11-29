@@ -36,6 +36,9 @@ type
     refresh_local: boolean;
     refresh_global: boolean;
     use_source: boolean;
+    start_closed: boolean;
+    max_depth: integer;
+    max_children: integer;
   end;
   TDbgpMenuState = ( dmsOff, dmsDisconnected, dmsConnected );
   TDbgpNppPlugin = class(TNppPlugin)
@@ -98,7 +101,7 @@ implementation
 
 { TDbgpNppPlugin }
 uses
-  Windows,Graphics,SysUtils;
+  Windows,Graphics,SysUtils,Controls;
 
 //var   x:TToolbarIcons;
 
@@ -147,6 +150,7 @@ begin
   //if (sn^.nmhdr.code = SCN_DOUBLECLICK) then ShowMessage('SCN_DOUBLECLICK');
 
   if (HWND(sn^.nmhdr.hwndFrom) = self.NppData.NppHandle) then
+  begin
     if (sn^.nmhdr.code = NPPN_TB_MODIFICATION) then
     begin
       New(x);
@@ -155,6 +159,12 @@ begin
       x^.ToolbarBmp := LoadImage(Hinstance, 'IDB_DBGP_TEST', IMAGE_BITMAP, 0, 0, (LR_DEFAULTSIZE or LR_LOADMAP3DCOLORS));
       SendMessage(Npp.NppData.NppHandle, NPPM_ADDTOOLBARICON, self.FuncArray[0].CmdID, LPARAM(x));
     end;
+    if (sn^.nmhdr.code = NPPN_SHUTDOWN) then
+    begin
+      if (Assigned(self.MainForm)) then self.MainForm.Free;
+      self.MainForm := nil;
+    end;
+  end;
 end;
 
 constructor TDbgpNppPlugin.Create;
@@ -298,6 +308,8 @@ end;
 destructor TDbgpNppPlugin.Destroy;
 begin
   if (Assigned(self.MainForm)) then self.MainForm.Close;
+  if (Assigned(self.MainForm)) then self.MainForm.Free;
+  self.MainForm := nil;
   inherited;
 end;
 
@@ -376,7 +388,8 @@ begin
   self.MainForm := TNppDockingForm1.Create(self);
   self.MainForm.DlgId := self.FuncArray[0].CmdID;
   self.MainForm.Show;
-  self.RegisterDockingForm(TNppDockingForm(self.MainForm));
+  self.RegisterDockingForm(TNppDockingForm(self.MainForm)); // move code to the docking class
+  if (not self.config.start_closed) then self.MainForm.BitBtnCloseClick(nil); // activate socket
 end;
 
 procedure TDbgpNppPlugin.FuncAbout;
@@ -388,13 +401,19 @@ begin
 end;
 
 procedure TDbgpNppPlugin.FuncConfig;
+var
+  r: TModalResult;
 begin
   self.ReadMaps(self.config.maps);
   self.ConfigForm := TConfigForm1.Create(self);
   //self.ConfigForm.DlgId := self.FuncArray[9].CmdID;
   self.ConfigForm.Hide;
-  self.ConfigForm.ShowModal;
+  r := self.ConfigForm.ShowModal;
   self.ConfigForm := nil;
+  if (r = mrOK) then
+  begin
+    if (Assigned(self.MainForm)) then self.MainForm.UpdateConfig;
+  end;
 end;
 
 procedure TDbgpNppPlugin.FuncEval;
@@ -459,6 +478,9 @@ begin
 end;
 
 procedure TDbgpNppPlugin.MessageProc(var Msg: TMessage);
+var
+  test: array [0..18] of String;
+
 begin
   inherited;
   if (Msg.Msg = WM_CREATE) then
@@ -467,16 +489,28 @@ begin
     SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETFORE, 5, $000000);
     SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETBACK, 5, $00ff00);
 
-    SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINE,  4, SC_MARK_ROUNDRECT);
-    SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETFORE, 4, $0000ff);
-    SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETBACK, 4, $000055);
+    test[0]  := '14 14 3 1';
+    test[1]  := ' 	c #FFFFFF';
+    test[2]  := '.	c #000000';
+    test[3]  := 'x	c #FF0000';
+    test[4]  := '              ';
+    test[5]  := '              ';
+    test[6]  := '    ......    ';
+    test[7]  := '   .xxxxxx.   ';
+    test[8]  := '  .xxxxxxxx.  ';
+    test[9]  := '  .xxxxxxxx.  ';
+    test[10] := '  .xxxxxxxx.  ';
+    test[11] := '  .xxxxxxxx.  ';
+    test[12] := '  .xxxxxxxx.  ';
+    test[13] := '  .xxxxxxxx.  ';
+    test[14] := '   .xxxxxx.   ';
+    test[15] := '    ......    ';
+    test[16] := '              ';
+    test[17] := '              ';
+
+    SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINEPIXMAP,  4, LPARAM(@test));
+
     self.ChangeMenu(dmsOff);
-  end;
-  if (Msg.Msg = WM_CLOSE) then
-  begin
-    if (Assigned(self.MainForm)) then self.MainForm.Free;
-    self.MainForm := nil;
-    //self.ChangeMenu(dmsOff);
   end;
 end;
 
@@ -502,10 +536,12 @@ begin
     maps[i].DelimitedText := ini.ReadString('Mapping',xmaps[i],';;');
   end;
 
-  // ugly hack
   self.config.refresh_local := ( ini.ReadString('Misc','refresh_local','0') = '1' );
   self.config.refresh_global := ( ini.ReadString('Misc','refresh_global','0') = '1' );
   self.config.use_source := ( ini.ReadString('Misc','use_source','0') = '1' );
+  self.config.start_closed := ( ini.ReadString('Misc','start_closed','0') = '1' );
+  self.config.max_depth := ini.ReadInteger('Features','max_depth',3);
+  self.config.max_children := ini.ReadInteger('Features','max_children',15);
 
   ini.Free;
   xmaps.Free;
@@ -519,6 +555,10 @@ var
   i: integer;
 begin
   path := self.GetPluginsConfigDir;
+  if (not DirectoryExists(path)) then
+  begin
+    ForceDirectories(path);
+  end;
   path := path + '\dbgp.ini';
 
   ini := TIniFile.Create(path);
@@ -539,26 +579,23 @@ begin
     ini.WriteString('Mapping','Map'+IntToStr(i),conf.maps[i].DelimitedText);
   end;
 
-  if (conf.refresh_local) then
-    ini.WriteString('Misc','refresh_local','1')
-  else
-    ini.WriteString('Misc','refresh_local','0');
+  SetLength(TrueBoolStrs, 1);
+  SetLength(FalseBoolStrs, 1);
+  TrueBoolStrs[0] := '1';
+  FalseBoolStrs[0] := '0';
 
-  if (conf.refresh_global) then
-    ini.WriteString('Misc','refresh_global','1')
-  else
-    ini.WriteString('Misc','refresh_gloal','0');
+  ini.WriteString('Misc','refresh_local',BoolToStr(conf.refresh_local, true));
+  ini.WriteString('Misc','refresh_global',BoolToStr(conf.refresh_global, true));
+  ini.WriteString('Misc','use_source',BoolToStr(conf.use_source, true));
+  ini.WriteString('Misc','start_closed',BoolToStr(conf.start_closed, true));
 
-  if (conf.use_source) then
-    ini.WriteString('Misc','use_source','1')
-  else
-    ini.WriteString('Misc','use_source','0');
+  ini.WriteInteger('Features','max_depth',conf.max_depth);
+  ini.WriteInteger('Features','max_children',conf.max_children);
 
   ini.Free;
 
   // reread config
   self.ReadMaps(self.config.maps);
-
 end;
 
 // Test, za prikazovanje menujev

@@ -24,7 +24,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, Grids, StdCtrls, NppForms, DbgpWinSocket, JvDockTree,
-  JvDockControlForm, JvDockVCStyle, JvComponentBase;
+  JvDockControlForm, JvDockVCStyle, JvComponentBase, Spin;
 
 type
   TConfigForm1 = class(TNppForm)
@@ -37,6 +37,11 @@ type
     CheckBox2: TCheckBox;
     Button3: TButton;
     CheckBox3: TCheckBox;
+    CheckBox4: TCheckBox;
+    SpinEdit1: TSpinEdit;
+    Label1: TLabel;
+    SpinEdit2: TSpinEdit;
+    Label2: TLabel;
     procedure Button1Click(Sender: TObject);
     procedure DeleteButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -94,6 +99,9 @@ begin
   self.CheckBox1.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_local;
   self.CheckBox2.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_global;
   self.CheckBox3.Checked := (self.Npp as TDbgpNppPlugin).config.use_source;
+  self.CheckBox4.Checked := (self.Npp as TDbgpNppPlugin).config.start_closed;
+  self.SpinEdit1.Value := (self.Npp as TDbgpNppPlugin).config.max_depth;
+  self.SpinEdit2.Value := (self.Npp as TDbgpNppPlugin).config.max_children;
 
   // kill the DLG... don't hide it...
   self.DefaultCloseAction := caFree;
@@ -118,10 +126,13 @@ begin
   conf.refresh_local := self.CheckBox1.Checked;
   conf.refresh_global := self.CheckBox2.Checked;
   conf.use_source := self.CheckBox3.Checked;
+  conf.start_closed := self.CheckBox4.Checked;
+  conf.max_depth := self.SpinEdit1.Value;
+  conf.max_children := self.SpinEdit2.Value;
 
   (self.Npp as TDbgpNppPlugin).WriteMaps(conf);
 
-  self.Close;
+  self.ModalResult := mrOK;
 end;
 
 end.

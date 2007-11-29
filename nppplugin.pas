@@ -144,6 +144,42 @@ const
   //scnNotification->nmhdr.hwndFrom = hwndNpp;
   //scnNotification->nmhdr.idFrom = 0;
 
+  NPPN_FILEOPENED = (NPPN_FIRST + 4);
+  // To notify plugins that the current file is just opened
+  //scnNotification->nmhdr.code = NPPN_FILEOPENED;
+  //scnNotification->nmhdr.hwndFrom = hwndNpp;
+  //scnNotification->nmhdr.idFrom = 0;
+
+  NPPN_FILECLOSED = (NPPN_FIRST + 5);
+  // To notify plugins that the current file is just closed
+  //scnNotification->nmhdr.code = NPPN_FILECLOSED;
+  //scnNotification->nmhdr.hwndFrom = hwndNpp;
+  //scnNotification->nmhdr.idFrom = 0;
+
+  NPPN_FILEBEFOREOPEN = (NPPN_FIRST + 6);
+  // To notify plugins that the current file is about to be opened
+  //scnNotification->nmhdr.code = NPPN_FILEBEFOREOPEN;
+  //scnNotification->nmhdr.hwndFrom = hwndNpp;
+  //scnNotification->nmhdr.idFrom = 0;
+
+  NPPN_FILEBEFORESAVE = (NPPN_FIRST + 7);
+  // To notify plugins that the current file is about to be saved
+  //scnNotification->nmhdr.code = NPPN_FILEBEFOREOPEN;
+  //scnNotification->nmhdr.hwndFrom = hwndNpp;
+  //scnNotification->nmhdr.idFrom = 0;
+
+  NPPN_FILESAVED = (NPPN_FIRST + 8);
+  // To notify plugins that the current file is just saved
+  //scnNotification->nmhdr.code = NPPN_FILECLOSED;
+  //scnNotification->nmhdr.hwndFrom = hwndNpp;
+  //scnNotification->nmhdr.idFrom = 0;
+
+  NPPN_SHUTDOWN = (NPPN_FIRST + 9);
+  // To notify plugins that Notepad++ is about to be shutdowned.
+  //scnNotification->nmhdr.code = NPPN_SHOUTDOWN;
+  //scnNotification->nmhdr.hwndFrom = hwndNpp;
+  //scnNotification->nmhdr.idFrom = 0;
+
   RUNCOMMAND_USER    = (WM_USER + 3000);
     VAR_NOT_RECOGNIZED = 0;
     FULL_CURRENT_PATH = 1;
@@ -309,8 +345,8 @@ uses
 }
 procedure TNppPlugin.BeforeDestruction;
 begin
-  Application.Terminate;
   Application.Handle := 0;
+  Application.Terminate;
   inherited;
 end;
 

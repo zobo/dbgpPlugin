@@ -1,3 +1,10 @@
+2007-11-25 v0.6 beta
+
+Added new config options.
+Confiuration changes take effect right away.
+NPPM_SHUTDOWN.
+New breakpoint icons.
+
 2007-10-12 v0.5 alpha fix
 
 Added WM_CLOSE processing that should fix the hanging after exit problem. (Waiting for NPP approval).

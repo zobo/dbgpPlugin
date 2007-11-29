@@ -4,7 +4,7 @@ object ConfigForm1: TConfigForm1
   BorderIcons = [biSystemMenu]
   BorderStyle = bsToolWindow
   Caption = 'DBGp configuration'
-  ClientHeight = 338
+  ClientHeight = 409
   ClientWidth = 497
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -61,9 +61,23 @@ object ConfigForm1: TConfigForm1
     Left = 0
     Top = 224
     Width = 497
-    Height = 73
+    Height = 145
     Caption = 'Misc'
     TabOrder = 1
+    object Label1: TLabel
+      Left = 16
+      Top = 84
+      Width = 134
+      Height = 13
+      Caption = 'Maximum depth of elements:'
+    end
+    object Label2: TLabel
+      Left = 16
+      Top = 108
+      Width = 117
+      Height = 13
+      Caption = 'Maximum child elements:'
+    end
     object CheckBox1: TCheckBox
       Left = 16
       Top = 16
@@ -88,10 +102,38 @@ object ConfigForm1: TConfigForm1
       Caption = 'Use SOURCE command for all files and bypass maps'
       TabOrder = 2
     end
+    object CheckBox4: TCheckBox
+      Left = 16
+      Top = 64
+      Width = 305
+      Height = 17
+      Caption = 'Start with closed socket (firewall conflicts work arround)'
+      TabOrder = 3
+    end
+    object SpinEdit1: TSpinEdit
+      Left = 160
+      Top = 80
+      Width = 57
+      Height = 22
+      MaxValue = 1000
+      MinValue = 0
+      TabOrder = 4
+      Value = 0
+    end
+    object SpinEdit2: TSpinEdit
+      Left = 160
+      Top = 104
+      Width = 57
+      Height = 22
+      MaxValue = 1000
+      MinValue = 0
+      TabOrder = 5
+      Value = 0
+    end
   end
   object Button3: TButton
     Left = 16
-    Top = 304
+    Top = 376
     Width = 75
     Height = 25
     Caption = 'Ok'

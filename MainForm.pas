@@ -105,6 +105,7 @@ type
     procedure DoEval(data:string); overload;
     procedure SetState(state: TDbgpState);
     procedure Open(childtype: TDebugChildType; Show: boolean);
+    procedure UpdateConfig;
   end;
 
 var
@@ -145,7 +146,7 @@ begin
   ManualTabDock(self.JvDockServer1.BottomDockPanel, self.DebugStackForm1, self.DebugBreakpointsForm1);
 
   self.DebugWatchForm := nil;
-
+  self.BitBtnClose.Caption := 'Turn ON';
   self.SetState(DbgpWinSocket.dsStopped);
 end;
 
@@ -234,7 +235,7 @@ var
   i: integer;
 begin
   self.SetState(DbgpWinSocket.dsStarting);
-  self.sock.SetFeature('max_depth','3'); // make configurable
+  self.UpdateConfig;
   self.Label1.Caption := 'Connected to '+init.server+' idekey: '+init.idekey+' file: '+init.filename;
   for i:=0 to Length(self.DebugBreakpointsForm1.breakpoints)-1 do
   begin
@@ -670,6 +671,17 @@ begin
   else
   begin
     self.DebugWatchForm.SetVars(Watches);
+  end;
+end;
+
+procedure TNppDockingForm1.UpdateConfig;
+begin
+  if (Assigned(self.sock)) then
+  begin
+    self.sock.maps := (self.Npp as TDbgpNppPlugin).config.maps;
+    self.sock.use_source := (self.Npp as TDbgpNppPlugin).config.use_source;
+    self.sock.SetFeature('max_depth',IntToStr((self.Npp as TDbgpNppPlugin).config.max_depth));
+    self.sock.SetFeature('max_children',IntToStr((self.Npp as TDbgpNppPlugin).config.max_children));
   end;
 end;
 

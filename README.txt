@@ -2,7 +2,7 @@ DBGP Notepad++ plugin
 
 ABSTRACT
 
-This is a plugin for Notepad++ 4.1. It is a debugger client that talks DBGP 
+This is a plugin for Notepad++ 4.4. It is a debugger client that talks DBGP 
 protocol. It was built mostly for PHP (XDebug) but may/should/will work with 
 other languages as well.
 
@@ -19,7 +19,8 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-Version 0.5. Still in alpha phase, because some things don't work as they should.
+Version 0.6. I'm declaring this version a beta, though I still might add a
+feature or two.
 
 NOTE
 
@@ -57,6 +58,7 @@ FEATURES / TODOS
 - a Manual!!
 + SOURCE support
 + Easy line breakpoint toggle
+- child window position save
 
 ( - todo, / started, + done, ? don't know if I'll do it )
 
@@ -87,7 +89,8 @@ When installed the plugin exposes a new submenu in the Plugins menu. The first
 item, "Debugger" starts the debugger. Note that when Notepad++ is loaded the
 debugger is not started. The main forms are not loaded hopefully so that less
 memory is used and to ensure faster startup. The second section is there mainly
-for the keyboard shortcuts. And then there is the Configuration.
+for the keyboard shortcuts. And then there are all child windows and the
+Configuration.
 
 Configuration
 Currently configuration is used to set up file maps. There are 4 cols. Remote IP
@@ -112,23 +115,24 @@ fetch local or remote contexts on every break respectively.
 The use "SOURCE" command bypasses the mapping altogether and gets all files over
 the dbgp protocol. Additionally as of 0.2 if the file cannot be mapped the system
 falls back to SOURCE retrieval, no more error box.
+Also new as of 0.6 are "Start with closed socket" and two DBGP features
+(max_depth and max_children). If the plugin seems to hang when you try to open
+the debugging window, try to enable the first option.
 
 Debugger
 When the debugger is started a dialog is docked at the bottom part of N++. It can
 be floated and attached elsewhere, but I think this is the best place for it. This
 dialog is used to dock other child dialogs. It also has a set of buttons that
-expose debugger commands. Currently, when started, a "Raw DBGP" form pops up.
-(Not as of 0.2)
+expose debugger commands. You can open the RAW windows with the DBG button.
 This can be used to send raw commands to the debugging engine and inspect the data
 send to the engine and back. Mostly for debugging, can be closed (but won’t currently unload).
 Right click to get a popup menu with "Clear" and "Copy" command.
 
 Debugging is started from the browser. I won’t go into this, but I do recommend
 the Firefox extension for starting XDebug sessions. When the debugging engine
-connects to the debugger N++ win flash and most of the buttons will get enabled.
-The debugger will do some basic initialization and will stay in the starting
-state. Go read the proper documentation to understand this. I recommend doing
-a "Step into" now, so that the relevant file will open.
+connects to the debugger N++ will flash and most of the buttons will get enabled.
+The debugger will do some basic initialization and will step to the first line
+of code.
 
 Stepping
 Once connected and in a starting or break state you can step around using

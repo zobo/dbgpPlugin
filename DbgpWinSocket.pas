@@ -23,8 +23,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, ScktComp, WinSock, XMLDoc, XMLDOM, XMLIntf,
-  {IdCoder3To4, }StrUtils, Dialogs, Variants, Base64, IdGlobal, Forms;
-
+  StrUtils, Dialogs, Variants, Base64, IdGlobal, Forms{$IFDEF DBGP_COMPRESSION}, zlib{$ENDIF};
 type
 //  TDbgpWinSocket = class;
 //  TDbgpRawEvent = procedure (Sender: TObject; Socket: TDbgpWinSocket; Data:String) of object;
@@ -112,6 +111,9 @@ type
     last_source_request: string;
     source_files: TStringList;
     AsyncDbgpCall: TAsyncDbgpCall;
+{$IFDEF DBGP_COMPRESSION}
+    compression: boolean;
+{$ENDIF}
   protected
     { Protected declarations }
     FOnDbgpStack: TStackCB;
@@ -134,6 +136,8 @@ type
     function ProcessResponse_breakpoint_list: String;
     function ProcessResponse_source: String;
     function ProcessResponse_property_get: String;
+    function ProcessResponse_feature_get: String;
+    function ProcessResponse_feature_set: String;
     function ProcessResponse: String;
 
     procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems); overload;
@@ -167,6 +171,9 @@ type
     procedure SendEval(data: String);
     function GetPropertyAsync(data: String): string; overload;
     function GetPropertyAsync(data: String; var list: TPropertyItems): string; overload;
+    function SetFeatureAsync(FeatureName: String; Value: String): boolean;
+    function GetFeatureAsync(FeatureName: String; var Value: String): boolean; overload;
+    function GetFeatureAsync(FeatureName: String): boolean; overload;
     function SendCommand(Cmd: String; Args: String; Base64:String): Integer; overload;
     function SendCommand(Cmd: String; Args: String): Integer; overload;
     function SendCommand(Cmd: String): Integer; overload;
@@ -202,6 +209,9 @@ begin
   self.source_files := TStringList.Create;
   self.source_files.CaseSensitive := true;
   self.AsyncDbgpCall.TransID := ''; // not set
+{$IFDEF DBGP_COMPRESSION}
+  self.compression := false;
+{$ENDIF}
 end;
 destructor TDbgpWinSocket.Destroy;
 var
@@ -218,31 +228,7 @@ begin
   inherited;
 end;
 
-procedure TDbgpWinSocket.GetContext(Context: integer);
-begin
-  self.SendCommand('context_get', '-c '+IntToStr(Context)); // todo depth
-end;
-
-procedure TDbgpWinSocket.GetBreakpoints;
-begin
-  self.SendCommand('breakpoint_list');
-end;
-
-procedure TDbgpWinSocket.GetContext(Context: integer; Depth: integer);
-begin
-  self.SendCommand('context_get', '-c '+IntToStr(Context)+' -d '+IntToStr(Depth)); // todo depth
-end;
-
-procedure TDbgpWinSocket.GetFeature(FeatureName: String);
-begin
-  self.SendCommand('feture-get','-n '+FeatureName);
-end;
-
-{ Maps a remote filename 'file://..' to a local file 'd:\xxx...' }
-procedure TDbgpWinSocket.GetStack;
-begin
-  self.SendCommand('stack_get');
-end;
+{-----------------------------------------------------------------------------}
 
 function TDbgpWinSocket.MapLocalToRemote(Local: String): String;
 var
@@ -267,15 +253,9 @@ begin
     if (CompareText(self.maps[i][3], LeftStr(Local, Length(self.maps[i][3])))=0) then
     begin
       r := self.maps[i][2] + Copy(Local, Length(self.maps[i][3])+1, MaxInt);
-      if (self.remote_unix) then
-      begin
-        r := StringReplace(r, '\', '/', [rfReplaceAll]);
-        Result := 'file://' + URLEncode(r);
-      end
-      else
-      begin
-        Result := 'file:///' + URLEncode(r);
-      end;
+      r := StringReplace(r, '\', '/', [rfReplaceAll]);
+      if (self.remote_unix) then Result := 'file://' + URLEncode(r);
+      if (not self.remote_unix) then Result := 'file:///' + URLEncode(r);
       exit;
     end;
   end;
@@ -376,6 +356,8 @@ begin
   Result := s;
 end;
 
+{-----------------------------------------------------------------------------}
+
 { procesiramo init}
 function TDbgpWinSocket.ProcessInit: String;
 begin
@@ -404,6 +386,17 @@ Data(404): <?xml version="1.0" encoding="iso-8859-1"?>
   if (self.init.server = '') then self.init.server := self.RemoteAddress;
   self.init := init; // need idekey before we can translate files...
   self.init.filename := self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
+
+{$IFDEF DBGP_COMPRESSION}
+  // try to negotiate compression
+  if (self.GetFeatureAsync('compression')) then
+  begin
+    if (self.SetFeatureAsync('compression', 'compress')) then
+    begin
+      self.compression := true;
+    end;
+  end;
+{$ENDIF}
 
   if (Assigned(self.FOnDbgpInit)) then self.FOnDbgpInit(self, self.init);
 end;
@@ -625,7 +618,6 @@ begin
   //Result := '';
 end;
 
-
 function TDbgpWinSocket.ProcessResponse_eval: String;
 var
   list: TPropertyItems;
@@ -734,6 +726,31 @@ begin
   FreePropertyItems(list);
 end;
 
+function TDbgpWinSocket.ProcessResponse_feature_get: String;
+begin
+  //
+end;
+
+function TDbgpWinSocket.ProcessResponse_feature_set: String;
+begin
+  //
+{
+<response command="feature_set"
+          feature="compression"
+          success="0|1"
+          transaction_id="transaction_id"/>
+}
+{
+  if (self.xml.ChildNodes[1].Attributes['feature'] = 'compression') and
+     (self.xml.ChildNodes[1].Attributes['success'] = '1') then
+  begin
+
+  end;
+}
+end;
+
+{-----------------------------------------------------------------------------}
+
 function TDbgpWinSocket.CheckForError(varxml: IXMLNodeList): string;
 begin
   Result := '';
@@ -751,8 +768,12 @@ end;
 // returnes the read data and does all processing...
 function TDbgpWinSocket.ReadDBGP: String;
 var
- res,s,r,s2:String;
- len:Integer;
+  res,s,r,s2:String;
+  len:Integer;
+{$IFDEF DBGP_COMPRESSION}
+  zp: Pointer;
+  zs: integer;
+{$ENDIF}
 begin
   s := self.ReceiveText;
   s := self.buffer + s;
@@ -782,34 +803,32 @@ begin
   s := Copy(s, StrLen(PChar(s))+2+len+1, MaxInt);
 
   self.buffer := s; // ostanek
+  s := '';
+
+  // decompress
+{$IFDEF DBGP_COMPRESSION}
+  if (self.compression) then
+  begin
+    zlib.DecompressBuf(PChar(s2), len, len*20, zp, zs);
+    s2 := Copy(PChar(zp), 1, zs);
+    FreeMem(zp);
+  end;
+{$ENDIF}
 
   // for raw log
-   self.debugdata.Add('Recv: '+s2);
+  self.debugdata.Add('Recv: '+s2);
 
   self.Transaction_id := '';
 
+try
   self.xml := TXMLDocument.Create(nil);
   self.xml.Options := [];
   self.xml.XML.Add(s2);
   self.xml.Active := true;
 
-  s := '';
-try
   res := self.xml.ChildNodes[1].NodeName;
   // handle error?
   s := self.CheckForError(self.xml.ChildNodes);
-{
-  if (self.xml.ChildNodes[1].HasChildNodes) and (self.xml.ChildNodes[1].ChildNodes[0].NodeName = 'error') then
-  begin
-  // better to do an onDbgpError!
-    s := 'DBGP Error: '+
-      'Response type: '+res+' '+
-      'Command: '+self.xml.ChildNodes[1].Attributes['command']+' '+
-      'Error code: '+self.xml.ChildNodes[1].ChildNodes[0].Attributes['code']+' '+
-      'Error: '+self.xml.ChildNodes[1].ChildNodes[0].Attributes['apperr']+' '+
-      'Error message: '+self.xml.ChildNodes[1].ChildNodes[0].ChildNodes[0].ChildNodes[0].Text;
-  end;
-}
   if (res = 'init') then
   begin
     r := self.ProcessInit;
@@ -823,8 +842,7 @@ try
       self.AsyncDbgpCall.XMLData := s2; // save XML data
       s := ''; // clear possible errors...
     end
-    else
-    if (self.xml.ChildNodes[1].Attributes['command'] = 'stack_get') then
+    else if (self.xml.ChildNodes[1].Attributes['command'] = 'stack_get') then
     r := self.ProcessResponse_stack
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'eval') then
     r := self.ProcessResponse_eval
@@ -838,6 +856,10 @@ try
     r := self.ProcessResponse_source
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'property_get') then
     r := self.ProcessResponse_property_get
+    else if (self.xml.ChildNodes[1].Attributes['command'] = 'feature_get') then
+    r := self.ProcessResponse_feature_get
+    else if (self.xml.ChildNodes[1].Attributes['command'] = 'feature_set') then
+    r := self.ProcessResponse_feature_set
     else
     r := self.ProcessResponse;
   end
@@ -857,6 +879,8 @@ end;
   if (self.buffer<>'') then self.ReadDBGP;
 end;
 
+{-----------------------------------------------------------------------------}
+
 procedure TDbgpWinSocket.Resume(runtype: TRun);
 var
   cmd: String;
@@ -871,7 +895,6 @@ begin
   end;
   if (cmd = '') then exit;
   self.SendCommand(cmd);
-
 end;
 
 function TDbgpWinSocket.SendCommand(Cmd, Args, Base64: String): Integer;
@@ -963,12 +986,10 @@ begin
   self.SendCommand('breakpoint_update', cmd);
 end;
 
-
 procedure TDbgpWinSocket.SetFeature(FeatureName, Value: String);
 begin
   self.SendCommand('feature_set','-n '+FeatureName+' -v '+Value);
 end;
-
 
 { put stdout or stderr and 0,1,2 (disaled,copy,redirect) }
 procedure TDbgpWinSocket.SetStream(Str: string; Mode: Integer);
@@ -983,6 +1004,33 @@ begin
   self.SendCommand('source', '-f '+filename);
 end;
 
+procedure TDbgpWinSocket.GetContext(Context: integer);
+begin
+  self.SendCommand('context_get', '-c '+IntToStr(Context)); // todo depth
+end;
+
+procedure TDbgpWinSocket.GetBreakpoints;
+begin
+  self.SendCommand('breakpoint_list');
+end;
+
+procedure TDbgpWinSocket.GetContext(Context: integer; Depth: integer);
+begin
+  self.SendCommand('context_get', '-c '+IntToStr(Context)+' -d '+IntToStr(Depth)); // todo depth
+end;
+
+procedure TDbgpWinSocket.GetFeature(FeatureName: String);
+begin
+  self.SendCommand('feature_get','-n '+FeatureName);
+end;
+
+{ Maps a remote filename 'file://..' to a local file 'd:\xxx...' }
+procedure TDbgpWinSocket.GetStack;
+begin
+  self.SendCommand('stack_get');
+end;
+
+{-----------------------------------------------------------------------------}
 
 { Async call handling }
 function TDbgpWinSocket.WaitForAsyncAnswer(call_data: string): boolean;
@@ -1004,6 +1052,8 @@ begin
   // humm
 
 end;
+
+{-----------------------------------------------------------------------------}
 
 function TDbgpWinSocket.GetPropertyAsync(data: String): string;
 var
@@ -1056,6 +1106,70 @@ begin
     if (xml<>nil) then xml.Active := false;
     xml := nil;
   end;
+end;
+
+function TDbgpWinSocket.SetFeatureAsync(FeatureName,
+  Value: String): boolean;
+var
+  xml: IXMLDocument;
+begin
+  self.SetFeature(FeatureName, Value);
+  Result := false;
+  if (not self.WaitForAsyncAnswer(FeatureName)) then
+  begin
+    exit;
+  end;
+
+  try
+    xml := TXMLDocument.Create(nil);
+    xml.Options := [];
+    xml.XML.Add(self.AsyncDbgpCall.XMLData);
+    xml.Active := true;
+
+    if (xml.ChildNodes[1].Attributes['feature'] = FeatureName) and
+       (xml.ChildNodes[1].Attributes['success'] = '1') then
+      Result := true;
+  finally
+    if (xml<>nil) then xml.Active := false;
+    xml := nil;
+  end;
+end;
+
+function TDbgpWinSocket.GetFeatureAsync(FeatureName: String;
+  var Value: String): boolean;
+var
+  xml: IXMLDocument;
+begin
+  self.GetFeature(FeatureName);
+  Result := false;
+  Value := '';
+  if (not self.WaitForAsyncAnswer(FeatureName)) then
+  begin
+    exit;
+  end;
+
+  try
+    xml := TXMLDocument.Create(nil);
+    xml.Options := [];
+    xml.XML.Add(self.AsyncDbgpCall.XMLData);
+    xml.Active := true;
+
+    if (xml.ChildNodes[1].Attributes['feature_name'] = FeatureName) and
+       (xml.ChildNodes[1].Attributes['supported'] = '1') then
+      Result := true;
+    if (xml.ChildNodes[1].HasChildNodes) and (xml.ChildNodes[1].ChildNodes[0]<>nil) then
+      Value := xml.ChildNodes[1].ChildNodes[0].Text;
+  finally
+    if (xml<>nil) then xml.Active := false;
+    xml := nil;
+  end;
+end;
+
+function TDbgpWinSocket.GetFeatureAsync(FeatureName: String): boolean;
+var
+  s: string;
+begin
+  Result := self.GetFeatureAsync(FeatureName, s);
 end;
 
 end.
