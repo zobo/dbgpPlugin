@@ -19,7 +19,7 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-Version 0.6. I'm declaring this version a beta, though I still might add a
+Version 0.7. I'm declaring this version a beta, though I still might add a
 feature or two.
 
 NOTE
@@ -71,7 +71,7 @@ with a command from ConvertExt plugin. Also F7 could conflict if it is
 enabled.
 
 Try to look at this too:
-http://www.ourwikicommunity.com/wiki/How_to_Setup_BDGp_debugger_in_Notepad%2B%2B_to_Debug_PHP
+http://www.judiwa.com/wiki/How_to_Setup_BDGp_debugger_in_Notepad%2B%2B_to_Debug_PHP
 
 SERVER SIDE INSTALL
 
@@ -118,6 +118,8 @@ falls back to SOURCE retrieval, no more error box.
 Also new as of 0.6 are "Start with closed socket" and two DBGP features
 (max_depth and max_children). If the plugin seems to hang when you try to open
 the debugging window, try to enable the first option.
+New in 0.7 is the "Break at fist line when debugging starts". If you uncheck this,
+execution will only stop at the first breakpoint.
 
 Debugger
 When the debugger is started a dialog is docked at the bottom part of N++. It can
@@ -132,7 +134,8 @@ Debugging is started from the browser. I won’t go into this, but I do recommend
 the Firefox extension for starting XDebug sessions. When the debugging engine
 connects to the debugger N++ will flash and most of the buttons will get enabled.
 The debugger will do some basic initialization and will step to the first line
-of code.
+of code. As of 0.7 this is optional and the cebugger can continue until the
+first breakpoint.
 
 Stepping
 Once connected and in a starting or break state you can step around using

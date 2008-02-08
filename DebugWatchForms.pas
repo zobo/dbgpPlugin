@@ -92,7 +92,7 @@ procedure TDebugWatchFrom.PopupMenu1Popup(Sender: TObject);
 begin
   self.DeleteWatch1.Enabled := false;
   if (self.VirtualStringTree1.FocusedNode = nil) then exit;
-  if (self.VirtualStringTree1.FocusedNode^.Parent = nil) then self.DeleteWatch1.Enabled := true;
+  if (self.VirtualStringTree1.FocusedNode^.Parent = self.VirtualStringTree1.RootNode) then self.DeleteWatch1.Enabled := true;
 end;
 
 procedure TDebugWatchFrom.DoChange;

@@ -42,6 +42,7 @@ type
     Label1: TLabel;
     SpinEdit2: TSpinEdit;
     Label2: TLabel;
+    CheckBox5: TCheckBox;
     procedure Button1Click(Sender: TObject);
     procedure DeleteButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -100,6 +101,7 @@ begin
   self.CheckBox2.Checked := (self.Npp as TDbgpNppPlugin).config.refresh_global;
   self.CheckBox3.Checked := (self.Npp as TDbgpNppPlugin).config.use_source;
   self.CheckBox4.Checked := (self.Npp as TDbgpNppPlugin).config.start_closed;
+  self.CheckBox5.Checked := (self.Npp as TDbgpNppPlugin).config.break_first_line;
   self.SpinEdit1.Value := (self.Npp as TDbgpNppPlugin).config.max_depth;
   self.SpinEdit2.Value := (self.Npp as TDbgpNppPlugin).config.max_children;
 
@@ -127,6 +129,7 @@ begin
   conf.refresh_global := self.CheckBox2.Checked;
   conf.use_source := self.CheckBox3.Checked;
   conf.start_closed := self.CheckBox4.Checked;
+  conf.break_first_line := self.CheckBox4.Checked;
   conf.max_depth := self.SpinEdit1.Value;
   conf.max_children := self.SpinEdit2.Value;
 

@@ -4,7 +4,7 @@ object ConfigForm1: TConfigForm1
   BorderIcons = [biSystemMenu]
   BorderStyle = bsToolWindow
   Caption = 'DBGp configuration'
-  ClientHeight = 409
+  ClientHeight = 415
   ClientWidth = 497
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -61,19 +61,19 @@ object ConfigForm1: TConfigForm1
     Left = 0
     Top = 224
     Width = 497
-    Height = 145
+    Height = 153
     Caption = 'Misc'
     TabOrder = 1
     object Label1: TLabel
       Left = 16
-      Top = 84
+      Top = 100
       Width = 134
       Height = 13
       Caption = 'Maximum depth of elements:'
     end
     object Label2: TLabel
       Left = 16
-      Top = 108
+      Top = 124
       Width = 117
       Height = 13
       Caption = 'Maximum child elements:'
@@ -112,7 +112,7 @@ object ConfigForm1: TConfigForm1
     end
     object SpinEdit1: TSpinEdit
       Left = 160
-      Top = 80
+      Top = 96
       Width = 57
       Height = 22
       MaxValue = 1000
@@ -122,7 +122,7 @@ object ConfigForm1: TConfigForm1
     end
     object SpinEdit2: TSpinEdit
       Left = 160
-      Top = 104
+      Top = 120
       Width = 57
       Height = 22
       MaxValue = 1000
@@ -130,10 +130,18 @@ object ConfigForm1: TConfigForm1
       TabOrder = 5
       Value = 0
     end
+    object CheckBox5: TCheckBox
+      Left = 16
+      Top = 80
+      Width = 209
+      Height = 17
+      Caption = 'Break at fist line when debugging starts'
+      TabOrder = 6
+    end
   end
   object Button3: TButton
     Left = 16
-    Top = 376
+    Top = 384
     Width = 75
     Height = 25
     Caption = 'Ok'

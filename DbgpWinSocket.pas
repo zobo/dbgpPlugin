@@ -127,18 +127,18 @@ type
     function MapLocalToRemote(Local:String): String;
     function MapSourceToLocal(Source:String): String;
     function MapLocalToSource(Local:String): String;
-    function ProcessInit: String;
-    function ProcessStream: String;
-    function ProcessResponse_stack: String;
-    function ProcessResponse_eval: String;
-    function ProcessResponse_context_get: String;
-    function ProcessResponse_breakpoint_set: String;
-    function ProcessResponse_breakpoint_list: String;
-    function ProcessResponse_source: String;
-    function ProcessResponse_property_get: String;
-    function ProcessResponse_feature_get: String;
-    function ProcessResponse_feature_set: String;
-    function ProcessResponse: String;
+    procedure ProcessInit;
+    procedure ProcessStream;
+    procedure ProcessResponse_stack;
+    procedure ProcessResponse_eval;
+    procedure ProcessResponse_context_get;
+    procedure ProcessResponse_breakpoint_set;
+    procedure ProcessResponse_breakpoint_list;
+    procedure ProcessResponse_source;
+    procedure ProcessResponse_property_get;
+    procedure ProcessResponse_feature_get;
+    procedure ProcessResponse_feature_set;
+    procedure ProcessResponse;
 
     procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems); overload;
     procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems; ParentItem: PPropertyItem); overload;
@@ -359,7 +359,7 @@ end;
 {-----------------------------------------------------------------------------}
 
 { procesiramo init}
-function TDbgpWinSocket.ProcessInit: String;
+procedure TDbgpWinSocket.ProcessInit;
 begin
 {
 Data(404): <?xml version="1.0" encoding="iso-8859-1"?>
@@ -384,7 +384,6 @@ Data(404): <?xml version="1.0" encoding="iso-8859-1"?>
   self.init.idekey := self.xml.ChildNodes[1].Attributes['idekey'];
   self.init.server := self.xml.ChildNodes[1].Attributes['proxied'];
   if (self.init.server = '') then self.init.server := self.RemoteAddress;
-  self.init := init; // need idekey before we can translate files...
   self.init.filename := self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
 
 {$IFDEF DBGP_COMPRESSION}
@@ -496,7 +495,7 @@ Recv(672): <?xml version="1.0" encoding="iso-8859-1"?>
 end;
 
 // Predvsem reakcije na status.. break in stop
-function TDbgpWinSocket.ProcessResponse: String;
+procedure TDbgpWinSocket.ProcessResponse;
 begin
   // is response.status=break?
   {Recv(131): <?xml version="1.0" encoding="iso-8859-1"?>
@@ -538,7 +537,7 @@ begin
   end;
 end;
 
-function TDbgpWinSocket.ProcessResponse_breakpoint_list: String;
+procedure TDbgpWinSocket.ProcessResponse_breakpoint_list;
 var
   varxml: IXMLNodeList;
   i: integer;
@@ -585,14 +584,14 @@ begin
     self.FOnDbgpBreakpoints(self,bps);
 end;
 
-function TDbgpWinSocket.ProcessResponse_breakpoint_set: String;
+procedure TDbgpWinSocket.ProcessResponse_breakpoint_set;
 var
   id: String;
 begin
   id := self.xml.ChildNodes[1].Attributes['id'];
 end;
 
-function TDbgpWinSocket.ProcessResponse_context_get: String;
+procedure TDbgpWinSocket.ProcessResponse_context_get;
 var
   list: TPropertyItems;
   context: Integer;
@@ -615,10 +614,9 @@ begin
     self.FOnDbgpContext(self,context,list);
   //free data
   FreePropertyItems(list);
-  //Result := '';
 end;
 
-function TDbgpWinSocket.ProcessResponse_eval: String;
+procedure TDbgpWinSocket.ProcessResponse_eval;
 var
   list: TPropertyItems;
 begin
@@ -628,17 +626,14 @@ begin
   if (Assigned(self.FOnDbgpEval)) then
     self.FOnDbgpEval(self,-1,list);
   FreePropertyItems(list);
-  //Result := '';
 end;
 
-function TDbgpWinSocket.ProcessResponse_stack: String;
+procedure TDbgpWinSocket.ProcessResponse_stack;
 var
   i: integer;
   x: IXMLNode;
-  r: String;
   stack: TStackList;
 begin
-  r := '';
   if (not self.xml.ChildNodes[1].HasChildNodes) then exit; // bad?
   x := nil;
   if (self.xml.ChildNodes[1].HasChildNodes) then
@@ -656,13 +651,12 @@ begin
     stack[i-1].stacktype := x.Attributes['type'];
     x:= x.NextSibling;
   end;
-  //Result := r;
 
   self.stack := stack;
   if (Assigned(self.FOnDbgpStack)) then self.FOnDbgpStack(self, stack);
 end;
 
-function TDbgpWinSocket.ProcessStream: String;
+procedure TDbgpWinSocket.ProcessStream;
 var
   str,data: String;
 begin
@@ -685,7 +679,7 @@ begin
   //Result := 'Stream('+str+'): '+data;
 end;
 
-function TDbgpWinSocket.ProcessResponse_source: String;
+procedure TDbgpWinSocket.ProcessResponse_source;
 var
   ret: String;
   f: TextFile;
@@ -716,7 +710,7 @@ begin
 end;
 
 //
-function TDbgpWinSocket.ProcessResponse_property_get: String;
+procedure TDbgpWinSocket.ProcessResponse_property_get;
 var
   list: TPropertyItems;
 begin
@@ -726,12 +720,12 @@ begin
   FreePropertyItems(list);
 end;
 
-function TDbgpWinSocket.ProcessResponse_feature_get: String;
+procedure TDbgpWinSocket.ProcessResponse_feature_get;
 begin
   //
 end;
 
-function TDbgpWinSocket.ProcessResponse_feature_set: String;
+procedure TDbgpWinSocket.ProcessResponse_feature_set;
 begin
   //
 {
@@ -768,7 +762,7 @@ end;
 // returnes the read data and does all processing...
 function TDbgpWinSocket.ReadDBGP: String;
 var
-  res,s,r,s2:String;
+  res,s,s2:String;
   len:Integer;
 {$IFDEF DBGP_COMPRESSION}
   zp: Pointer;
@@ -831,7 +825,7 @@ try
   s := self.CheckForError(self.xml.ChildNodes);
   if (res = 'init') then
   begin
-    r := self.ProcessInit;
+    self.ProcessInit;
   end
   else if (res = 'response') then
   begin
@@ -843,32 +837,32 @@ try
       s := ''; // clear possible errors...
     end
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'stack_get') then
-    r := self.ProcessResponse_stack
+      self.ProcessResponse_stack
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'eval') then
-    r := self.ProcessResponse_eval
+      self.ProcessResponse_eval
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'context_get') then
-    r := self.ProcessResponse_context_get
+      self.ProcessResponse_context_get
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'breakpoint_set') then
-    r := self.ProcessResponse_breakpoint_set
+      self.ProcessResponse_breakpoint_set
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'breakpoint_list') then
-    r := self.ProcessResponse_breakpoint_list
+      self.ProcessResponse_breakpoint_list
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'source') then
-    r := self.ProcessResponse_source
+      self.ProcessResponse_source
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'property_get') then
-    r := self.ProcessResponse_property_get
+      self.ProcessResponse_property_get
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'feature_get') then
-    r := self.ProcessResponse_feature_get
+      self.ProcessResponse_feature_get
     else if (self.xml.ChildNodes[1].Attributes['command'] = 'feature_set') then
-    r := self.ProcessResponse_feature_set
+      self.ProcessResponse_feature_set
     else
-    r := self.ProcessResponse;
+      self.ProcessResponse;
   end
   else if (res = 'notify') then
   begin
   end
   else if (res = 'stream') then
   begin
-    r := self.ProcessStream;
+    self.ProcessStream;
   end;
 
   if (s<>'') then ShowMessage(s);

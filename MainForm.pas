@@ -242,7 +242,10 @@ begin
     self.sock.SetBreakpoint(self.DebugBreakpointsForm1.breakpoints[i]);
   end;
   self.sock.GetBreakpoints;
-  self.DoResume(StepInto);
+  if (self.Npp as TDbgpNppPlugin).config.break_first_line then
+    self.DoResume(StepInto)
+  else
+    self.DoResume(Run);
 end;
 
 procedure TNppDockingForm1.GotoLine(filename: string; Lineno: Integer);

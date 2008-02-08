@@ -37,6 +37,7 @@ type
     refresh_global: boolean;
     use_source: boolean;
     start_closed: boolean;
+    break_first_line: boolean;
     max_depth: integer;
     max_children: integer;
   end;
@@ -540,6 +541,7 @@ begin
   self.config.refresh_global := ( ini.ReadString('Misc','refresh_global','0') = '1' );
   self.config.use_source := ( ini.ReadString('Misc','use_source','0') = '1' );
   self.config.start_closed := ( ini.ReadString('Misc','start_closed','0') = '1' );
+  self.config.break_first_line := ( ini.ReadString('Misc','break_first_line','0') = '1' );
   self.config.max_depth := ini.ReadInteger('Features','max_depth',3);
   self.config.max_children := ini.ReadInteger('Features','max_children',15);
 
@@ -588,6 +590,7 @@ begin
   ini.WriteString('Misc','refresh_global',BoolToStr(conf.refresh_global, true));
   ini.WriteString('Misc','use_source',BoolToStr(conf.use_source, true));
   ini.WriteString('Misc','start_closed',BoolToStr(conf.start_closed, true));
+  ini.WriteString('Misc','break_first_line',BoolToStr(conf.break_first_line, true));
 
   ini.WriteInteger('Features','max_depth',conf.max_depth);
   ini.WriteInteger('Features','max_children',conf.max_children);

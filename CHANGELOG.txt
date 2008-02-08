@@ -1,3 +1,10 @@
+2008-02-08 v0.7 beta
+
+Added config option to not break at first line of code.
+A few code cleanups.
+Fixed a bug in the watch child.
+Unreleased windows path mapping problem.
+
 2007-11-25 v0.6 beta
 
 Added new config options.
