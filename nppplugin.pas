@@ -465,7 +465,6 @@ procedure TNppPlugin.RegisterDockingForm(form: TForm{TNppDockingForm});
 var
   r:Integer;
   td: TToolbarData;
-  tmp: Array[0..1000] of Char;
   cap: ^String;
   _form: TNppDockingForm;
 begin
@@ -474,19 +473,18 @@ begin
 
   td.ClientHandle := form.Handle;
 
-  // this is just crap.. we need to keep this string in memory.. no way to destroy it tho..  screw this for now
-  // If we'd wanted to change the caption or additional info, we'd need to change the memory these pointer point to now... blody hell for pascal!@#%#@
-  New(cap);
-  cap^ := form.Caption; // Why would caption get deallocated anyway?!.. Is it better to show the form before register?
-  td.Title := PChar(cap^);
+  GetMem(td.Title, 500);
+  StrLCopy(td.Title, PChar(form.Caption), 500);
 
   td.DlgId := _form.DlgId;
-  td.Mask := DWS_DF_CONT_BOTTOM;{DWS_DF_FLOATING;} // change
+  //td.Mask := DWS_DF_CONT_BOTTOM;{DWS_DF_FLOATING;} // change
+  td.Mask := 0;
 //  td.IconTab := nil;
 //  td.AdditionalInfo := Pchar('lala');
 
-  GetModuleFileName(0, tmp, 1000);
-  td.ModuleName := tmp;
+  GetMem(td.ModuleName, 1000);
+  GetModuleFileName(HInstance, td.ModuleName, 1000);
+  StrLCopy(td.ModuleName, PChar(ExtractFileName(td.ModuleName)), 1000);
 
   r:=SendMessage(self.NppData.NppHandle, NPPM_DMMREGASDCKDLG, 0, Integer(@td));
 end;

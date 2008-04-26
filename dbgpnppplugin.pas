@@ -40,6 +40,7 @@ type
     break_first_line: boolean;
     max_depth: integer;
     max_children: integer;
+    listen_port: integer;
   end;
   TDbgpMenuState = ( dmsOff, dmsDisconnected, dmsConnected );
   TDbgpNppPlugin = class(TNppPlugin)
@@ -65,6 +66,7 @@ type
     procedure FuncStepOut;
     procedure FuncRunTo;
     procedure FuncRun;
+    procedure FuncStop;
     procedure FuncEval;
     procedure FuncAbout;
     procedure FuncBreakpoint;
@@ -89,6 +91,7 @@ procedure _FuncStepOver; cdecl;
 procedure _FuncStepOut; cdecl;
 procedure _FuncRunTo; cdecl;
 procedure _FuncRun; cdecl;
+procedure _FuncStop; cdecl;
 procedure _FuncEval; cdecl;
 procedure _FuncAbout; cdecl;
 procedure _FuncBreakpoint; cdecl;
@@ -111,6 +114,7 @@ var
   x:^TToolbarIcons;
   tr: TTextRange;
   s: string;
+  i: integer;
 begin
   if (sn^.nmhdr.code = SCN_DWELLSTART) then
   begin
@@ -149,6 +153,16 @@ begin
   end;
 
   //if (sn^.nmhdr.code = SCN_DOUBLECLICK) then ShowMessage('SCN_DOUBLECLICK');
+  if (sn^.nmhdr.code = SCN_MARGINCLICK) and (sn^.margin = 1) and (sn^.modifiers and SCMOD_CTRL = SCMOD_CTRL) then
+  begin
+    if (Assigned(self.MainForm)) then
+    begin
+      self.GetFileLine(s,i);
+      i := SendMessage(self.NppData.ScintillaMainHandle, SciSupport.SCI_LINEFROMPOSITION, sn.position, 0);
+      self.MainForm.ToggleBreakpoint(s,i+1);
+      //ShowMessage('SCN_MARGINCLICK '+IntToStr(i));
+    end;
+  end;
 
   if (HWND(sn^.nmhdr.hwndFrom) = self.NppData.NppHandle) then
   begin
@@ -162,6 +176,7 @@ begin
     end;
     if (sn^.nmhdr.code = NPPN_SHUTDOWN) then
     begin
+      if (Assigned(self.MainForm)) then self.MainForm.Hide;
       if (Assigned(self.MainForm)) then self.MainForm.Free;
       self.MainForm := nil;
     end;
@@ -175,7 +190,7 @@ var
 begin
   inherited;
   // Setup menu items
-  SetLength(self.FuncArray,20);
+  SetLength(self.FuncArray,21);
 
   // #112 = F1... pojma nimam od kje...
   self.PluginName := 'DBGp';
@@ -184,7 +199,7 @@ begin
 
   StrCopy(self.FuncArray[i].ItemName, 'Debugger');
   self.FuncArray[i].Func := _FuncDebugger;
-  self.FuncArray[i].ShortcutKey := nil;
+  New(self.FuncArray[i].ShortcutKey);
   inc(i);
 
   StrCopy(self.FuncArray[i].ItemName, '-');
@@ -227,6 +242,11 @@ begin
   sk := self.FuncArray[i].ShortcutKey;
   sk.IsCtrl := false; sk.IsAlt := false; sk.IsShift := false;
   sk.Key := #120; // F9
+  inc(i);
+
+  StrCopy(self.FuncArray[i].ItemName, 'Stop');
+  self.FuncArray[i].Func := _FuncStop;
+  self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
   StrCopy(self.FuncArray[i].ItemName, '-');
@@ -343,6 +363,10 @@ procedure _FuncRun; cdecl;
 begin
   Npp.FuncRun;
 end;
+procedure _FuncStop; cdecl;
+begin
+  Npp.FuncStop;
+end;
 procedure _FuncEval; cdecl;
 begin
   Npp.FuncEval;
@@ -387,9 +411,12 @@ begin
     exit;
   end;
   self.MainForm := TNppDockingForm1.Create(self);
-  self.MainForm.DlgId := self.FuncArray[0].CmdID;
-  self.MainForm.Show;
+  //self.MainForm.DlgId := self.FuncArray[0].CmdID;
+  self.MainForm.DlgId := 0;
+  //self.MainForm.Show;
   self.RegisterDockingForm(TNppDockingForm(self.MainForm)); // move code to the docking class
+  self.MainForm.Visible := true;
+  self.MainForm.ServerSocket1.Port := self.config.listen_port;
   if (not self.config.start_closed) then self.MainForm.BitBtnCloseClick(nil); // activate socket
 end;
 
@@ -436,6 +463,11 @@ end;
 procedure TDbgpNppPlugin.FuncRun;
 begin
   if (Assigned(self.MainForm)) then self.MainForm.DoResume(Run);
+end;
+
+procedure TDbgpNppPlugin.FuncStop;
+begin
+  if (Assigned(self.MainForm)) then self.MainForm.BitBtnStopClick(nil);
 end;
 
 procedure TDbgpNppPlugin.FuncStepInto;
@@ -542,6 +574,7 @@ begin
   self.config.use_source := ( ini.ReadString('Misc','use_source','0') = '1' );
   self.config.start_closed := ( ini.ReadString('Misc','start_closed','0') = '1' );
   self.config.break_first_line := ( ini.ReadString('Misc','break_first_line','0') = '1' );
+  self.config.listen_port := ini.ReadInteger('Misc','listen_port',9000);
   self.config.max_depth := ini.ReadInteger('Features','max_depth',3);
   self.config.max_children := ini.ReadInteger('Features','max_children',15);
 
@@ -628,15 +661,16 @@ begin
     self.GrayFuncItem(4);
     self.GrayFuncItem(5);
     self.GrayFuncItem(6);
+    self.GrayFuncItem(7);
 
-    self.GrayFuncItem(8);
     self.GrayFuncItem(9);
+    self.GrayFuncItem(10);
 
-    self.GrayFuncItem(11);
     self.GrayFuncItem(12);
     self.GrayFuncItem(13);
     self.GrayFuncItem(14);
     self.GrayFuncItem(15);
+    self.GrayFuncItem(16);
   end;
   if (state = dmsConnected) then
   begin
@@ -645,15 +679,16 @@ begin
     self.EnableFuncItem(4);
     self.EnableFuncItem(5);
     self.EnableFuncItem(6);
+    self.EnableFuncItem(7);
 
-    self.EnableFuncItem(8);
     self.EnableFuncItem(9);
+    self.EnableFuncItem(10);
 
-    self.EnableFuncItem(11);
     self.EnableFuncItem(12);
     self.EnableFuncItem(13);
     self.EnableFuncItem(14);
     self.EnableFuncItem(15);
+    self.EnableFuncItem(16);
   end;
   if (state = dmsDisconnected) then
   begin
@@ -662,15 +697,16 @@ begin
     self.GrayFuncItem(4);
     self.GrayFuncItem(5);
     self.GrayFuncItem(6);
+    self.GrayFuncItem(7);
 
-    self.EnableFuncItem(8);
     self.EnableFuncItem(9);
+    self.EnableFuncItem(10);
 
-    self.EnableFuncItem(11);
     self.EnableFuncItem(12);
     self.EnableFuncItem(13);
     self.EnableFuncItem(14);
     self.EnableFuncItem(15);
+    self.EnableFuncItem(16);
   end;
 
 end;

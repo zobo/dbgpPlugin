@@ -129,7 +129,7 @@ begin
   conf.refresh_global := self.CheckBox2.Checked;
   conf.use_source := self.CheckBox3.Checked;
   conf.start_closed := self.CheckBox4.Checked;
-  conf.break_first_line := self.CheckBox4.Checked;
+  conf.break_first_line := self.CheckBox5.Checked;
   conf.max_depth := self.SpinEdit1.Value;
   conf.max_children := self.SpinEdit2.Value;
 

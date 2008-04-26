@@ -515,7 +515,14 @@ begin
     begin
       // when finished...
       // send one last run so we can die?
+      self.FOnDbgpBreak(self, true);
+    end;
+  end
+  else
+  if (self.xml.ChildNodes[1].Attributes['status'] = 'stopping') then
+  begin
     if (Assigned(self.FOnDbgpBreak)) then
+    begin
       self.FOnDbgpBreak(self, true);
     end;
   end;
@@ -690,6 +697,13 @@ begin
   command="source" transaction_id="77" encoding="base64">
 	<![CDATA[PD9waHANCg0KZW...cCgkY29kZSk7DQo=]]>
 </response>}
+{
+<- source -i 159 -f file:///C:/Documents and Settings/User/???
+?????????/Work/tbox/lib/util.inc.php
+-> <response xmlns="urn:debugger_protocol_v1"
+xmlns:xdebug="http://xdebug.org/dbgp/xdebug" command="source"
+transaction_id="159"><error code="1"><message><![CDATA[parse error in
+command]]></message></error></response>}
   ret := '';
 
   if (self.xml.ChildNodes[1].HasChildNodes) and (self.xml.ChildNodes[1].ChildNodes[0]<>nil) then

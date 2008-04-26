@@ -1,3 +1,18 @@
+2008-04-20 v0.8 beta
+
+Added listen port config directive. No dialog interface for it, just edit config file.
+CTRL+Click on margin to add breakpoint.
+Notepad++ will now remember last position of the debug window.
+Fixed a problem with newer XDebug when stepping out of the script.
+Made variable trees (context, watch...) sortable.
+Also when a variable inside an array changes, the red change indicator is propagated back to the top.
+Added a stop button. Aborts script.
+Watch child now present at startup.
+
+2008-02-16 v0.7 beta fix
+
+Fixed a bug in configuration dialog.
+
 2008-02-08 v0.7 beta
 
 Added config option to not break at first line of code.

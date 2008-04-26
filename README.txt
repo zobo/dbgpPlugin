@@ -19,7 +19,7 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-Version 0.7. I'm declaring this version a beta, though I still might add a
+Version 0.8. I'm declaring this version a beta, though I still might add a
 feature or two.
 
 NOTE
@@ -139,13 +139,16 @@ first breakpoint.
 
 Stepping
 Once connected and in a starting or break state you can step around using
-Step out, Step into, Step over, Run to and Run (Continue).
+Step out, Step into, Step over, Run to and Run (Continue). New in 0.8 is the
+stop button. This will cause the debugging engine to abort executing the script.
 
 Breakpoints
 As of 0.2 there is a breakpoint child window and a breakpoint button. Use the
 button to easily set a line breakpoint, right click the breakpoint child
 to set more advanced breakpoints. Breakpoints are persistent now (this means
 that they reside locally and get sent to the engine when it connects).
+Ctrl+F9 will toggle a line breakpoint on the current line. Ctrl+click on the
+margin will toggle a line breakpoint on that line.
 
 Evaling
 When in a break state you can eval things. Ctrl+F7 will bring up the eval window.

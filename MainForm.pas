@@ -45,6 +45,7 @@ type
     BitBtnRaw: TBitBtn;
     Label1: TLabel;
     BitBtnRunTo: TBitBtn;
+    BitBtnStop: TBitBtn;
     procedure FormCreate(Sender: TObject);
     procedure ServerSocket1Accept(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -65,6 +66,7 @@ type
     procedure BitBtnCloseClick(Sender: TObject);
     procedure BitBtnRawClick(Sender: TObject);
     procedure BitBtnRunToClick(Sender: TObject);
+    procedure BitBtnStopClick(Sender: TObject);
     // run to cursor
   private
     { Private declarations }
@@ -106,6 +108,7 @@ type
     procedure SetState(state: TDbgpState);
     procedure Open(childtype: TDebugChildType; Show: boolean);
     procedure UpdateConfig;
+    procedure ToggleBreakpoint(filename: string; lineno: integer);
   end;
 
 var
@@ -126,12 +129,14 @@ begin
 end;
 
 procedure TNppDockingForm1.FormCreate(Sender: TObject);
+var
+  d: TJvDockTabHostForm;
 begin
   self.Open(dctStack, false);
   self.Open(dctLocalContect, false);
   self.Open(dctGlobalContext, false);
 
-  ManualTabDock(self.JvDockServer1.BottomDockPanel, self.ContextLocalForm1, self.ContextGlobalForm1);
+  d := ManualTabDock(self.JvDockServer1.BottomDockPanel, self.ContextLocalForm1, self.ContextGlobalForm1);
 
   self.DebugRawForm1 := TDebugRawForm1.Create(self);
 
@@ -145,7 +150,9 @@ begin
 
   ManualTabDock(self.JvDockServer1.BottomDockPanel, self.DebugStackForm1, self.DebugBreakpointsForm1);
 
-  self.DebugWatchForm := nil;
+  self.Open(dctWatches,false);
+  ManualTabDockAddPage(d, self.DebugWatchForm);
+
   self.BitBtnClose.Caption := 'Turn ON';
   self.SetState(DbgpWinSocket.dsStopped);
 end;
@@ -409,6 +416,11 @@ begin
   self.DoResume(Run);
 end;
 
+procedure TNppDockingForm1.BitBtnStopClick(Sender: TObject);
+begin
+  self.DoResume(Stop);
+end;
+
 procedure TNppDockingForm1.BitBtnRunToClick(Sender: TObject);
 var
   s: string;
@@ -429,19 +441,25 @@ end;
 procedure TNppDockingForm1.BitBtnBreakpointClick(Sender: TObject);
 var
   s: string;
-  i,j: integer;
+  i: integer;
+begin
+  self.Npp.GetFileLine(s,i);
+  self.ToggleBreakpoint(s,i+1);
+end;
+
+// Pass line no with 1 for first line etc
+procedure TNppDockingForm1.ToggleBreakpoint(filename: string; lineno: integer);
+var
+  j: integer;
   bp: TBreakpoint;
   remove: boolean;
 begin
-  self.Npp.GetFileLine(s,i);
-  // look for the debug
-
   remove := false;
   for j := 0 to Length(self.DebugBreakpointsForm1.breakpoints)-1 do
   begin
     if (self.DebugBreakpointsForm1.breakpoints[j].breakpointtype <> btLine) then continue;
-    if (self.DebugBreakpointsForm1.breakpoints[j].filename <> s) then continue;
-    if (self.DebugBreakpointsForm1.breakpoints[j].lineno <> i+1) then continue;
+    if (self.DebugBreakpointsForm1.breakpoints[j].filename <> filename) then continue;
+    if (self.DebugBreakpointsForm1.breakpoints[j].lineno <> lineno) then continue;
     remove := true;
     bp := self.DebugBreakpointsForm1.breakpoints[j];
     // assuming we are in the right file...
@@ -453,7 +471,7 @@ begin
     if (remove) then
       self.sock.RemoveBreakpoint(bp)
     else
-      self.sock.SetBreakpoint(s,i+1);
+      self.sock.SetBreakpoint(filename,lineno);
     self.sock.GetBreakpoints;
   end
   else
@@ -465,8 +483,8 @@ begin
   begin
     bp.id := '';
     bp.breakpointtype := btLine;
-    bp.filename := s;
-    bp.lineno := i+1;
+    bp.filename := filename;
+    bp.lineno := lineno;
     bp.state := true;
     bp.functionname := '';
     bp.classname := '';
@@ -481,9 +499,9 @@ begin
 
   // @todo: create some helper functions in NppPlugin
   if (remove) then
-    SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETE, i, 4)
+    SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERDELETE, lineno-1, 4)
   else
-    SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, i, 4);
+    SendMessage(self.Npp.NppData.ScintillaMainHandle, SCI_MARKERADD, lineno-1, 4);
 end;
 
 procedure TNppDockingForm1.BitBtnEvalClick(Sender: TObject);
@@ -536,6 +554,7 @@ begin
   self.BitBtnStepOut.Enabled := stepping;
   self.BitBtnRun.Enabled := stepping;
   self.BitBtnRunTo.Enabled := stepping;
+  self.BitBtnStop.Enabled := stepping;
 
   self.BitBtnEval.Enabled := evaling;
   self.BitBtnBreakpoint.Enabled := breaking;

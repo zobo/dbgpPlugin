@@ -33,31 +33,35 @@ object DebugVarForm: TDebugVarForm
     Header.Font.Height = -11
     Header.Font.Name = 'MS Sans Serif'
     Header.Font.Style = []
-    Header.Options = [hoColumnResize, hoDrag, hoVisible]
+    Header.Options = [hoColumnResize, hoDrag, hoShowSortGlyphs, hoVisible]
+    Header.SortColumn = 0
     HintMode = hmTooltip
     ParentShowHint = False
     ShowHint = True
     TabOrder = 0
+    TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScrollOnExpand, toAutoSort, toAutoTristateTracking, toAutoDeleteMovedNodes]
     TreeOptions.SelectionOptions = [toFullRowSelect]
     TreeOptions.StringOptions = [toSaveCaptions]
+    OnCompareNodes = VirtualStringTree1CompareNodes
     OnDblClick = VirtualStringTree1DblClick
     OnGetText = VirtualStringTree1GetText
     OnPaintText = VirtualStringTree1PaintText
+    OnHeaderClick = VirtualStringTree1HeaderClick
     Columns = <
       item
-        Options = [coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
+        Options = [coAllowClick, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
         Position = 0
         Width = 100
         WideText = 'Name'
       end
       item
-        Options = [coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
+        Options = [coAllowClick, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
         Position = 1
         Width = 150
         WideText = 'Value'
       end
       item
-        Options = [coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
+        Options = [coAllowClick, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]
         Position = 2
         Width = 40
         WideText = 'Type'

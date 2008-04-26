@@ -36,6 +36,7 @@ type
     { Public declarations }
     DlgId: Integer;
     procedure Show;
+    procedure Hide;
   published
     { Published declarations }
   end;
@@ -76,6 +77,12 @@ end;
 procedure TNppDockingForm.Show;
 begin
   SendMessage(self.Npp.NppData.NppHandle, NPPM_DMMSHOW, 0, LPARAM(self.Handle));
+  inherited;
+end;
+
+procedure TNppDockingForm.Hide;
+begin
+  SendMessage(self.Npp.NppData.NppHandle, NPPM_DMMHIDE, 0, LPARAM(self.Handle));
   inherited;
 end;
 

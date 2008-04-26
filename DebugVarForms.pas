@@ -45,9 +45,15 @@ type
     procedure VirtualStringTree1PaintText(Sender: TBaseVirtualTree;
       const TargetCanvas: TCanvas; Node: PVirtualNode;
       Column: TColumnIndex; TextType: TVSTTextType);
+    procedure VirtualStringTree1HeaderClick(Sender: TVTHeader;
+      Column: TColumnIndex; Button: TMouseButton; Shift: TShiftState; X,
+      Y: Integer);
+    procedure VirtualStringTree1CompareNodes(Sender: TBaseVirtualTree;
+      Node1, Node2: PVirtualNode; Column: TColumnIndex;
+      var Result: Integer);
   private
     { Private declarations }
-    procedure SubSetVars(ParentNode: PVirtualNode; list:TPropertyItems; CompareList: TList);
+    function SubSetVars(ParentNode: PVirtualNode; list:TPropertyItems; CompareList: TList): Boolean;
     procedure GenerateCompareData(var list: TList; node: PVirtualNode);
     function GetCompareData(FullName: string; list: TList): PNodeCompareData;
   public
@@ -138,15 +144,17 @@ begin
   self.VirtualStringTree1.OffsetXY := oldxy;
 end;
 
-procedure TDebugVarForm.SubSetVars(ParentNode: PVirtualNode;
-  list: TPropertyItems; CompareList: TList);
+function TDebugVarForm.SubSetVars(ParentNode: PVirtualNode;
+  list: TPropertyItems; CompareList: TList): Boolean;
 var
   i: Integer;
   Node: PVirtualNode;
   Item: PPropertyItem;
   ItemEx: PPropertyItemEx;
   CompareData: PNodeCompareData;
+  r: Boolean;
 begin
+  Result := false; // has changed nodes
 
   for i:=0 to Length(list)-1 do
   begin
@@ -178,6 +186,7 @@ begin
       begin
         ItemEx^.changed := true;
         // hilight
+        // @todo: to parent
       end;
       if (vsExpanded in CompareData^.states) then Include(Node.States, vsExpanded);
     end
@@ -186,10 +195,18 @@ begin
       ItemEx^.changed := true; // ?
     end;
 
+    // at this point the data has been compared and we can fix it for displaying
+    if (Item^.datatype = 'object') then
+      Item^.data := Item^.classname
+    else
+      Item^.data := AnsiReplaceStr(Item^.data, #10, #13+#10);
+
     if ((list[i].numchildren <> '0') and (list[i].children <> nil)) then
     begin
-      self.SubSetVars(Node, list[i].children^, CompareList);
+      r := self.SubSetVars(Node, list[i].children^, CompareList);
+      if (r) then ItemEx^.changed := true;
     end;
+    if (ItemEx^.changed) then Result := true;
   end;
 
 end;
@@ -204,14 +221,7 @@ begin
 
   case Column of
   0: if (Node.Parent <> Sender.RootNode) then CellText := Item^.name else CellText := Item^.fullname;
-  //1: CellText := Item^.data;
-  1:
-  begin
-    if (Item^.datatype = 'object') then
-      CellText := Item^.classname
-    else
-    CellText := AnsiReplaceStr(Item^.data, #10, #13+#10);
-  end;
+  1: CellText := Item^.data;
   2: CellText := Item^.datatype;
   end;
 end;
@@ -250,6 +260,38 @@ end;
 procedure TDebugVarForm.ClearVars;
 begin
   self.VirtualStringTree1.Clear;
+end;
+
+procedure TDebugVarForm.VirtualStringTree1HeaderClick(Sender: TVTHeader;
+  Column: TColumnIndex; Button: TMouseButton; Shift: TShiftState; X,
+  Y: Integer);
+begin
+  if (Column <> self.VirtualStringTree1.Header.SortColumn) then
+  begin
+    self.VirtualStringTree1.Header.SortColumn := Column;
+    self.VirtualStringTree1.Header.SortDirection := sdDescending;
+  end;
+  if (self.VirtualStringTree1.Header.SortDirection = sdAscending) then
+    self.VirtualStringTree1.Header.SortDirection := sdDescending
+  else
+    self.VirtualStringTree1.Header.SortDirection := sdAscending;
+end;
+
+procedure TDebugVarForm.VirtualStringTree1CompareNodes(
+  Sender: TBaseVirtualTree; Node1, Node2: PVirtualNode;
+  Column: TColumnIndex; var Result: Integer);
+var
+  Item1, Item2: PPropertyItem;
+  s1,s2: string;
+begin
+  Item1 := PPropertyItem(Sender.GetNodeData(Node1));
+  Item2 := PPropertyItem(Sender.GetNodeData(Node2));
+  case Column of
+  0: begin s1 := Item1.name; s2 := Item2.name; end;
+  1: begin s1 := Item1.data; s2 := Item2.data; end;
+  2: begin s1 := Item1.datatype; s2 := Item2.datatype; end;
+  end;
+  if (s1 < s2) then Result := -1 else Result := 1;
 end;
 
 end.
