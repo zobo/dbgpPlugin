@@ -1,7 +1,7 @@
 object NppDockingForm1: TNppDockingForm1
   Left = 313
   Top = 573
-  Width = 515
+  Width = 905
   Height = 210
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSizeToolWin
@@ -16,20 +16,8 @@ object NppDockingForm1: TNppDockingForm1
   OnClose = FormClose
   OnCreate = FormCreate
   OnResize = FormResize
-  DesignSize = (
-    507
-    176)
   PixelsPerInch = 96
   TextHeight = 13
-  object Label1: TLabel
-    Left = 368
-    Top = 8
-    Width = 129
-    Height = 13
-    Anchors = [akLeft, akTop, akRight]
-    AutoSize = False
-    Caption = 'Disconnected...'
-  end
   object BitBtnStepInto: TBitBtn
     Left = 0
     Top = 0
@@ -562,6 +550,22 @@ object NppDockingForm1: TNppDockingForm1
       FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF}
     NumGlyphs = 2
   end
+  object ComboBox1: TComboBox
+    Left = 344
+    Top = 0
+    Width = 145
+    Height = 21
+    Style = csDropDownList
+    ItemHeight = 13
+    ItemIndex = 0
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 10
+    Text = 'Disconnected...'
+    OnSelect = ComboBox1Select
+    Items.Strings = (
+      'Disconnected...')
+  end
   object ServerSocket1: TServerSocket
     Active = False
     Port = 9000
@@ -570,6 +574,7 @@ object NppDockingForm1: TNppDockingForm1
     OnGetSocket = ServerSocket1GetSocket
     OnClientDisconnect = ServerSocket1ClientDisconnect
     OnClientRead = ServerSocket1ClientRead
+    OnClientError = ServerSocket1ClientError
     Left = 288
     Top = 40
   end

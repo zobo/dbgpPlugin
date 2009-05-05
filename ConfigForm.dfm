@@ -4,7 +4,7 @@ object ConfigForm1: TConfigForm1
   BorderIcons = [biSystemMenu]
   BorderStyle = bsToolWindow
   Caption = 'DBGp configuration'
-  ClientHeight = 415
+  ClientHeight = 430
   ClientWidth = 497
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -22,12 +22,12 @@ object ConfigForm1: TConfigForm1
     Left = 0
     Top = 0
     Width = 497
-    Height = 225
+    Height = 241
     Caption = 'File Mapping'
     TabOrder = 0
     object Button1: TButton
       Left = 16
-      Top = 192
+      Top = 208
       Width = 75
       Height = 25
       Caption = 'Add'
@@ -36,7 +36,7 @@ object ConfigForm1: TConfigForm1
     end
     object DeleteButton: TButton
       Left = 104
-      Top = 192
+      Top = 208
       Width = 75
       Height = 25
       Caption = 'Delete'
@@ -45,7 +45,7 @@ object ConfigForm1: TConfigForm1
     end
     object StringGrid1: TStringGrid
       Left = 16
-      Top = 24
+      Top = 40
       Width = 465
       Height = 161
       ColCount = 4
@@ -56,10 +56,18 @@ object ConfigForm1: TConfigForm1
       Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goEditing, goAlwaysShowEditor, goThumbTracking]
       TabOrder = 2
     end
+    object CheckBox6: TCheckBox
+      Left = 16
+      Top = 16
+      Width = 225
+      Height = 17
+      Caption = 'Bypass all mapping (local windows setup)'
+      TabOrder = 3
+    end
   end
   object GroupBox2: TGroupBox
     Left = 0
-    Top = 224
+    Top = 240
     Width = 497
     Height = 153
     Caption = 'Misc'
@@ -141,7 +149,7 @@ object ConfigForm1: TConfigForm1
   end
   object Button3: TButton
     Left = 16
-    Top = 384
+    Top = 400
     Width = 75
     Height = 25
     Caption = 'Ok'

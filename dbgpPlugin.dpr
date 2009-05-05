@@ -73,7 +73,7 @@ begin
   Npp.SetInfo(NppData);
 end;
 
-function getName(): Pchar; cdecl; export;
+function getName(): PWchar; cdecl; export;
 begin
   Result := Npp.GetName;
 end;
@@ -99,8 +99,14 @@ begin
   Result := xmsg.Result;
 end;
 
+function isUnicode():boolean; cdecl; export;
+begin
+  Result := true;
+end;
+
+
 exports
-  setInfo, getName, getFuncsArray, beNotified, messageProc;
+  setInfo, getName, getFuncsArray, beNotified, messageProc, isUnicode;
 
 begin
   { First, assign the procedure to the DLLProc variable }

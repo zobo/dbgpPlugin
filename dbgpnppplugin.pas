@@ -30,12 +30,16 @@ uses
   ConfigForm, Forms, SciSupport,
   Classes, Dialogs, IniFiles, DbgpWinSocket, Messages, AboutForm;
 
+const
+  MARKER_ARROW = 3;
+  MARKER_BREAK = 4;
 type
   TDbgpNppPluginConfig = record
     maps: TMaps;
     refresh_local: boolean;
     refresh_global: boolean;
     use_source: boolean;
+    local_setup: boolean;
     start_closed: boolean;
     break_first_line: boolean;
     max_depth: integer;
@@ -48,6 +52,7 @@ type
     MainForm: TNppDockingForm1;
     ConfigForm: TConfigForm1;
     AboutForm: TAboutForm1;
+    menuEvalIndex: Integer;
     procedure GrayFuncItem(i: integer);
     procedure EnableFuncItem(i: integer);
   public
@@ -57,7 +62,7 @@ type
     destructor Destroy; override;
 
     procedure BeNotified(sn: PSCNotification); override;
-    procedure MessageProc(var Msg: TMessage); override;
+    procedure NppWmCreate(var Msg: TMessage); message WM_CREATE;
 
     procedure FuncDebugger;
     procedure FuncConfig;
@@ -164,12 +169,16 @@ begin
     end;
   end;
 
+  if (sn^.nmhdr.code = SCN_MODIFIED) and (sn^.modificationType and SC_MOD_CHANGEMARKER = SC_MOD_CHANGEMARKER) then
+  begin
+//    ShowMessage('SCN_MODIFIED SC_MOD_CHANFEMARKER '+IntToStr(sn^.line));
+  end;
+
   if (HWND(sn^.nmhdr.hwndFrom) = self.NppData.NppHandle) then
   begin
     if (sn^.nmhdr.code = NPPN_TB_MODIFICATION) then
     begin
       New(x);
-      // test za toolbar
       x^.ToolbarIcon := 0;
       x^.ToolbarBmp := LoadImage(Hinstance, 'IDB_DBGP_TEST', IMAGE_BITMAP, 0, 0, (LR_DEFAULTSIZE or LR_LOADMAP3DCOLORS));
       SendMessage(Npp.NppData.NppHandle, NPPM_ADDTOOLBARICON, self.FuncArray[0].CmdID, LPARAM(x));
@@ -197,17 +206,17 @@ begin
 
   i := 0;
 
-  StrCopy(self.FuncArray[i].ItemName, 'Debugger');
+  StringToWideChar('Debugger', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncDebugger;
   New(self.FuncArray[i].ShortcutKey);
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, '-');
+  StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncDebugger;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Step Into');
+  StringToWideChar('Step Into', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncStepInto;
   New(self.FuncArray[i].ShortcutKey);
   sk := self.FuncArray[i].ShortcutKey;
@@ -215,7 +224,7 @@ begin
   sk.Key := #118; // F7
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Step Over');
+  StringToWideChar('Step Over', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncStepOver;
   New(self.FuncArray[i].ShortcutKey);
   sk := self.FuncArray[i].ShortcutKey;
@@ -223,7 +232,7 @@ begin
   sk.Key := #119; // F8
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Step Out');
+  StringToWideChar('Step Out', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncStepOut;
   New(self.FuncArray[i].ShortcutKey);
   sk := self.FuncArray[i].ShortcutKey;
@@ -231,12 +240,12 @@ begin
   sk.Key := #119; // Shift+F8
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Run to');
+  StringToWideChar('Run to', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncRunTo;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Run');
+  StringToWideChar('Run', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncRun;
   New(self.FuncArray[i].ShortcutKey);
   sk := self.FuncArray[i].ShortcutKey;
@@ -244,17 +253,18 @@ begin
   sk.Key := #120; // F9
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Stop');
+  StringToWideChar('Stop', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncStop;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, '-');
+  StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncDebugger;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Eval');
+  self.menuEvalIndex := i;
+  StringToWideChar('Eval', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncEval;
   New(self.FuncArray[i].ShortcutKey);
   sk := self.FuncArray[i].ShortcutKey;
@@ -262,7 +272,7 @@ begin
   sk.Key := #118; // Ctrl+F7
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Toggle Breakpoint');
+  StringToWideChar('Toggle Breakpoint', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncBreakpoint;
   New(self.FuncArray[i].ShortcutKey);
   sk := self.FuncArray[i].ShortcutKey;
@@ -272,52 +282,52 @@ begin
 
   // add stack and context items...
 
-  StrCopy(self.FuncArray[i].ItemName, '-');
+  StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncDebugger;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Local Context');
+  StringToWideChar('Local Context', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncLocalContext;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Global Context');
+  StringToWideChar('Global Context', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncGlobalContext;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Stack');
+  StringToWideChar('Stack', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncStack;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Breakpoints');
+  StringToWideChar('Breakpoints', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncBreakpoints;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Watches');
+  StringToWideChar('Watches', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncWatches;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, '-');
+  StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncDebugger;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'Config...');
+  StringToWideChar('Config...', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncConfig;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, '-');
+  StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncDebugger;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
-  StrCopy(self.FuncArray[i].ItemName, 'About...');
+  StringToWideChar('About...', self.FuncArray[i].ItemName, FuncItemNameLen);
   self.FuncArray[i].Func := _FuncAbout;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
@@ -510,46 +520,47 @@ begin
   if (Assigned(self.MainForm)) then self.MainForm.Open(dctWatches, true);
 end;
 
-procedure TDbgpNppPlugin.MessageProc(var Msg: TMessage);
+procedure TDbgpNppPlugin.NppWmCreate(var Msg: TMessage);
 var
   test: array [0..18] of String;
-
+  r: integer;
 begin
-  inherited;
-  if (Msg.Msg = WM_CREATE) then
-  begin
-    SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINE,  5, SC_MARK_SHORTARROW{SC_MARK_ARROW});
-    SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETFORE, 5, $000000);
-    SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETBACK, 5, $00ff00);
+  r := SendMessage(self.NppData.ScintillaMainHandle, SCI_GETMARGINMASKN, 1, 0);
+  r := r or (1 shl MARKER_ARROW) or (1 shl MARKER_BREAK);
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_SETMARGINMASKN, 1{_SC_MARGE_SYBOLE}, r);
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETALPHA, MARKER_ARROW, 90);
 
-    test[0]  := '14 14 3 1';
-    test[1]  := ' 	c #FFFFFF';
-    test[2]  := '.	c #000000';
-    test[3]  := 'x	c #FF0000';
-    test[4]  := '              ';
-    test[5]  := '              ';
-    test[6]  := '    ......    ';
-    test[7]  := '   .xxxxxx.   ';
-    test[8]  := '  .xxxxxxxx.  ';
-    test[9]  := '  .xxxxxxxx.  ';
-    test[10] := '  .xxxxxxxx.  ';
-    test[11] := '  .xxxxxxxx.  ';
-    test[12] := '  .xxxxxxxx.  ';
-    test[13] := '  .xxxxxxxx.  ';
-    test[14] := '   .xxxxxx.   ';
-    test[15] := '    ......    ';
-    test[16] := '              ';
-    test[17] := '              ';
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINE,  MARKER_ARROW, SC_MARK_SHORTARROW{SC_MARK_ARROW});
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETFORE, MARKER_ARROW, $000000);
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERSETBACK, MARKER_ARROW, $00ff00);
 
-    SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINEPIXMAP,  4, LPARAM(@test));
+  test[0]  := '14 14 3 1';
+  test[1]  := ' 	c #FFFFFF';
+  test[2]  := '.	c #000000';
+  test[3]  := 'x	c #FF0000';
+  test[4]  := '              ';
+  test[5]  := '              ';
+  test[6]  := '    ......    ';
+  test[7]  := '   .xxxxxx.   ';
+  test[8]  := '  .xxxxxxxx.  ';
+  test[9]  := '  .xxxxxxxx.  ';
+  test[10] := '  .xxxxxxxx.  ';
+  test[11] := '  .xxxxxxxx.  ';
+  test[12] := '  .xxxxxxxx.  ';
+  test[13] := '  .xxxxxxxx.  ';
+  test[14] := '   .xxxxxx.   ';
+  test[15] := '    ......    ';
+  test[16] := '              ';
+  test[17] := '              ';
 
-    self.ChangeMenu(dmsOff);
-  end;
+  SendMessage(self.NppData.ScintillaMainHandle, SCI_MARKERDEFINEPIXMAP,  MARKER_BREAK, LPARAM(@test));
+
+  self.ChangeMenu(dmsOff);
 end;
 
 procedure TDbgpNppPlugin.ReadMaps(var maps: TMaps);
 var
-  path: string;
+  path: String;
   ini: TIniFile;
   xmaps: TStringList;
   i: integer;
@@ -577,6 +588,7 @@ begin
   self.config.listen_port := ini.ReadInteger('Misc','listen_port',9000);
   self.config.max_depth := ini.ReadInteger('Features','max_depth',3);
   self.config.max_children := ini.ReadInteger('Features','max_children',15);
+  self.config.local_setup := ( ini.ReadString('Misc','local_setup','0') = '1' );
 
   ini.Free;
   xmaps.Free;
@@ -624,6 +636,7 @@ begin
   ini.WriteString('Misc','use_source',BoolToStr(conf.use_source, true));
   ini.WriteString('Misc','start_closed',BoolToStr(conf.start_closed, true));
   ini.WriteString('Misc','break_first_line',BoolToStr(conf.break_first_line, true));
+  ini.WriteString('Misc','local_setup',BoolToStr(conf.local_setup, true));
 
   ini.WriteInteger('Features','max_depth',conf.max_depth);
   ini.WriteInteger('Features','max_children',conf.max_children);
@@ -652,61 +665,27 @@ begin
 end;
 
 procedure TDbgpNppPlugin.ChangeMenu(state: TDbgpMenuState);
+var
+  i: integer;
 begin
 
   if (state = dmsOff) then
   begin
-    self.GrayFuncItem(2);
-    self.GrayFuncItem(3);
-    self.GrayFuncItem(4);
-    self.GrayFuncItem(5);
-    self.GrayFuncItem(6);
-    self.GrayFuncItem(7);
-
-    self.GrayFuncItem(9);
-    self.GrayFuncItem(10);
-
-    self.GrayFuncItem(12);
-    self.GrayFuncItem(13);
-    self.GrayFuncItem(14);
-    self.GrayFuncItem(15);
-    self.GrayFuncItem(16);
+    for i:=2 to 7 do self.GrayFuncItem(i);
+    for i:=self.menuEvalIndex to self.menuEvalIndex+1 do self.GrayFuncItem(i);
+    for i:=self.menuEvalIndex+3 to self.menuEvalIndex+7 do self.GrayFuncItem(i);
   end;
   if (state = dmsConnected) then
   begin
-    self.EnableFuncItem(2);
-    self.EnableFuncItem(3);
-    self.EnableFuncItem(4);
-    self.EnableFuncItem(5);
-    self.EnableFuncItem(6);
-    self.EnableFuncItem(7);
-
-    self.EnableFuncItem(9);
-    self.EnableFuncItem(10);
-
-    self.EnableFuncItem(12);
-    self.EnableFuncItem(13);
-    self.EnableFuncItem(14);
-    self.EnableFuncItem(15);
-    self.EnableFuncItem(16);
+    for i:=2 to 7 do self.EnableFuncItem(i);
+    for i:=self.menuEvalIndex to self.menuEvalIndex+1 do self.EnableFuncItem(i);
+    for i:=self.menuEvalIndex+3 to self.menuEvalIndex+7 do self.EnableFuncItem(i);
   end;
   if (state = dmsDisconnected) then
   begin
-    self.GrayFuncItem(2);
-    self.GrayFuncItem(3);
-    self.GrayFuncItem(4);
-    self.GrayFuncItem(5);
-    self.GrayFuncItem(6);
-    self.GrayFuncItem(7);
-
-    self.EnableFuncItem(9);
-    self.EnableFuncItem(10);
-
-    self.EnableFuncItem(12);
-    self.EnableFuncItem(13);
-    self.EnableFuncItem(14);
-    self.EnableFuncItem(15);
-    self.EnableFuncItem(16);
+    for i:=2 to 7 do self.GrayFuncItem(i);
+    for i:=self.menuEvalIndex to self.menuEvalIndex+1 do self.EnableFuncItem(i);
+    for i:=self.menuEvalIndex+3 to self.menuEvalIndex+7 do self.EnableFuncItem(i);
   end;
 
 end;

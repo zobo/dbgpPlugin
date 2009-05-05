@@ -37,6 +37,7 @@ object DebugVarForm: TDebugVarForm
     Header.SortColumn = 0
     HintMode = hmTooltip
     ParentShowHint = False
+    PopupMenu = PopupMenu1
     ShowHint = True
     TabOrder = 0
     TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScrollOnExpand, toAutoSort, toAutoTristateTracking, toAutoDeleteMovedNodes]
@@ -77,5 +78,14 @@ object DebugVarForm: TDebugVarForm
     CustomDock = False
     Left = 8
     Top = 24
+  end
+  object PopupMenu1: TPopupMenu
+    OnPopup = PopupMenu1Popup
+    Left = 8
+    Top = 56
+    object Copy1: TMenuItem
+      Caption = 'Copy'
+      OnClick = Copy1Click
+    end
   end
 end

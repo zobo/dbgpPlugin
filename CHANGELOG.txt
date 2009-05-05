@@ -1,3 +1,27 @@
+2009-05-05 v0.11 beta
+
+A quick fix for markers as N++ masks them.
+Try to do numerical comparison for sorting keys in Context and other windows.
+
+2008-11-16 v0.10 beta
+
+Changed to UNICODE.
+Handling for multiple concurent debug sessions.
+More socket error handling.
+
+
+2008-07-30 v0.9 beta
+
+New configuration, local setup bypasses all mapping.
+Experimental breakpoint tracking.
+Added GetLongPathName, so that internal paths are aligned with notepad's paths.
+Added unescape routine for dbgp files (eval).
+Updated breakpoint edit form for better alignment with xdebug.
+Remove all breakpoints.
+Added copy to clipboard from context and inspect tree forms.
+Fixed a bug (or some change in NPP) with opening files (green arrow not shown).
+A readme section on testing.
+
 2008-04-20 v0.8 beta
 
 Added listen port config directive. No dialog interface for it, just edit config file.

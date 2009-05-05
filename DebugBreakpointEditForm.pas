@@ -51,6 +51,8 @@ type
     Button2: TButton;
     Edit6: TEdit;
     Label12: TLabel;
+    Edit7: TEdit;
+    Label13: TLabel;
     procedure Button1Click(Sender: TObject);
     procedure ComboBox1Change(Sender: TObject);
   private
@@ -74,6 +76,8 @@ begin
   if (self.ComboBox1.Text = 'call') then self.breakpoint.breakpointtype := btCall;
   if (self.ComboBox1.Text = 'return') then self.breakpoint.breakpointtype := btReturn;
   if (self.ComboBox1.Text = 'exception') then self.breakpoint.breakpointtype := btException;
+  if (self.ComboBox1.Text = 'conditional') then self.breakpoint.breakpointtype := btConditional;
+  if (self.ComboBox1.Text = 'watch') then self.breakpoint.breakpointtype := btWatch;
   if (self.ComboBox2.Text = 'Enabled') then self.breakpoint.state := true;
   if (self.ComboBox2.Text = 'Disabled') then self.breakpoint.state := false;
 
@@ -86,6 +90,7 @@ begin
   try self.breakpoint.hit_value := StrToInt(self.Edit5.Text); except on EConvertError do self.breakpoint.hit_value := 0; end;
 
   self.breakpoint.hit_condition := self.ComboBox3.Text;
+  self.breakpoint.expression := self.Edit7.Text;
 
   { do I need to "return" mrOk? }
 end;
@@ -98,32 +103,33 @@ begin
   self.Edit1.Enabled := false; self.Edit2.Enabled := false; self.Edit3.Enabled := false;
   self.Edit4.Enabled := false; {self.Edit5.Enabled :=} self.Edit6.Enabled := false;
   self.CheckBox1.Enabled := false;
+  self.Edit7.Enabled := false;
 
-  if (self.ComboBox1.Text = 'line') then
+  if (self.ComboBox1.Text = 'line') or (self.ComboBox1.Text = 'conditional') then
   begin
-    self.Edit1.Enabled := true; self.Edit2.Enabled := true;
+    self.Edit1.Enabled := true; self.Edit2.Enabled := true; // filename // line
+    self.Edit7.Enabled := true; // expression
   end
   else
-  if (self.ComboBox1.Text = 'call') then
+  if (self.ComboBox1.Text = 'call') or (self.ComboBox1.Text = 'return')  then
   begin
-    self.Edit3.Enabled := true; self.Edit6.Enabled := true;
-  end
-  else
-  if (self.ComboBox1.Text = 'return') then
-  begin
-    self.Edit3.Enabled := true; self.Edit6.Enabled := true;
+    self.Edit3.Enabled := true; self.Edit6.Enabled := true; // function // class
   end
   else
   if (self.ComboBox1.Text = 'exception') then
   begin
-    self.Edit4.Enabled := true;
+    self.Edit4.Enabled := true; // exception
+  end
+  else
+  if (self.ComboBox1.Text = 'watch') then
+  begin
+    self.Edit7.Enabled := true; // expression
   end;
-  { not yet in the engine? }
-  { will work on this later }
+
   if (self.breakpoint.id = '') then
   begin
-    self.ComboBox1.Enabled := true;
-    self.CheckBox1.Enabled := true;
+    self.ComboBox1.Enabled := true; // type
+    self.CheckBox1.Enabled := true; // temporary
   end;
   self.Button1.Enabled := true;
 end;
@@ -133,13 +139,13 @@ begin
   self.breakpoint := bp;
 
   case (bp.breakpointtype) of
-  btLine: self.ComboBox1.Text := 'line';
-  btCall: self.ComboBox1.Text := 'call';
-  btReturn: self.ComboBox1.Text := 'return';
-  btException: self.ComboBox1.Text := 'exception';
+  btLine: self.ComboBox1.ItemIndex := 0;//.Text := 'line';
+  btCall: self.ComboBox1.ItemIndex := 1;//.Text := 'call';
+  btReturn: self.ComboBox1.ItemIndex := 2;//.Text := 'return';
+  btException: self.ComboBox1.ItemIndex := 3;//.Text := 'exception';
   end;
-  if (bp.state) then self.ComboBox2.Text := 'Enabled';
-  if (not bp.state) then self.ComboBox2.Text := 'Disabled';
+  if (bp.state) then self.ComboBox2.ItemIndex := 0;//.Text := 'Enabled';
+  if (not bp.state) then self.ComboBox2.ItemIndex := 1;//.Text := 'Disabled';
   self.Edit1.Text := self.breakpoint.filename;
   self.Edit2.Text := IntToStr(self.breakpoint.lineno);
   self.Edit3.Text := self.breakpoint.functionname;
@@ -148,6 +154,8 @@ begin
   self.Edit4.Text := self.breakpoint.exception;
   self.Edit5.Text := IntToStr(self.breakpoint.hit_value);
   self.ComboBox3.Text := self.breakpoint.hit_condition;
+  self.Edit7.Text := self.breakpoint.expression;
+  if (self.breakpoint.id <> '') then self.Label11.Caption := self.breakpoint.id;
 
   self.ComboBox1Change(nil);
 end;

@@ -29,7 +29,6 @@ uses
 type
   TRefreshCB = procedure(Sender: TObject) of Object;
   TDebugContextForm = class(TDebugVarForm)
-    PopupMenu1: TPopupMenu;
     Refresh1: TMenuItem;
     procedure Refresh1Click(Sender: TObject);
   private

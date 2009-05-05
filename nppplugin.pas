@@ -283,7 +283,7 @@ type
   PFUNCPLUGINCMD = procedure; cdecl;
 
   _TFuncItem = record
-    ItemName: Array[0..FuncItemNameLen-1] of Char;
+    ItemName: Array[0..FuncItemNameLen-1] of WideChar; // unicode
     Func: PFUNCPLUGINCMD;
     CmdID: Integer;
     Checked: Boolean;
@@ -292,21 +292,21 @@ type
 
   TToolbarData = record
     ClientHandle: HWND;
-    Title: PChar;
+    Title: PWideChar; // unicode
     DlgId: Integer;
     Mask: Integer;
     IconTab: HICON; // still dont know how to use this...
     AdditionalInfo: PChar;
     FloatRect: TRect;  // internal
     PrevContainer: Integer; // internal
-    ModuleName:PChar; // name of module GetModuleFileName(0...)
+    ModuleName:PWideChar; // name of module GetModuleFileName(0...)
   end;
 
   TNppPlugin = class(TObject)
   protected
-    PluginName: String;
+    PluginName: WideString; // unicode
     FuncArray: array of _TFuncItem;
-    function GetPluginsConfigDir: string;
+    function GetPluginsConfigDir: WideString;
   public
     NppData: TNppData;
     constructor Create;
@@ -315,7 +315,7 @@ type
 
     // needed for DLL export.. wrappers are in the main dll file.
     procedure SetInfo(NppData: TNppData);
-    function GetName: PChar;
+    function GetName: PWChar;
     function GetFuncsArray(var FuncsCount: Integer): Pointer;
     procedure BeNotified(sn: PSCNotification); virtual;
     procedure MessageProc(var Msg: TMessage); virtual;
@@ -324,16 +324,19 @@ type
     procedure RegisterDockingForm(form: TForm{TNppDockingForm});
 
     // df
-    function DoOpen(filename: String): boolean; overload;
-    function DoOpen(filename: String; Line: Integer): boolean; overload;
+    function DoOpen(filename: WideString): boolean; overload;
+    function DoOpen(filename: WideString; Line: Integer): boolean; overload;
     procedure GetFileLine(var filename: String; var Line: Integer);
+    procedure GetOpenFiles(files: TStrings);
     function GetWord: string;
   end;
+
+  function WideStrLen(const Str: PWideChar): Cardinal;
 
 implementation
 
 uses
-  NppDockingForm;
+  NppDockingForm, Math;
 { TNppPlugin }
 
 { This is hacking for troubble...
@@ -374,22 +377,23 @@ begin
   inherited;
 end;
 
-function TNppPlugin.DoOpen(filename: String): boolean;
+function TNppPlugin.DoOpen(filename: WideString): boolean;
 var
   r: integer;
-  s: string;
+  s: WideString;
 begin
   // ask if we are not already opened
   SetLength(s, 500);
-  r := SendMessage(self.NppData.NppHandle, NPPM_GETFULLCURRENTPATH, 0, LPARAM(PChar(s)));
-  SetString(s, PChar(s), strlen(PChar(s)));
+  r := SendMessageW(self.NppData.NppHandle, NPPM_GETFULLCURRENTPATH, 0, LPARAM(PWideChar(s)));
+  SetLength(s, WideStrLen(PWideChar(s)));
+//  SetString(s, PChar(s), strlen(PChar(s)));
   Result := true;
   if (s = filename) then exit;
-  r := SendMessage(self.NppData.NppHandle, WM_DOOPEN, 0, LPARAM(PChar(filename)));
-  Result := (r=0);
+  r := SendMessageW(self.NppData.NppHandle, WM_DOOPEN, 0, LPARAM(PWideChar(filename)));
+  Result := (r=1);
 end;
 
-function TNppPlugin.DoOpen(filename: String; Line: Integer): boolean;
+function TNppPlugin.DoOpen(filename: WideString; Line: Integer): boolean;
 var
   r: boolean;
 begin
@@ -401,13 +405,14 @@ end;
 
 procedure TNppPlugin.GetFileLine(var filename: String; var Line: Integer);
 var
-  s: String;
+  s: WideString;
   r: Integer;
 begin
   s := '';
   SetLength(s, 300);
-  SendMessage(self.NppData.NppHandle, NPPM_GETFULLCURRENTPATH,0, LPARAM(PChar(s)));
-  SetLength(s, StrLen(PChar(s)));
+  SendMessageW(self.NppData.NppHandle, NPPM_GETFULLCURRENTPATH,0, LPARAM(PWideChar(s)));
+  SetLength(s, WideStrLen(PWideChar(s)));
+  //SetLength(s, StrLen(PChar(s)));
   filename := s;
 
   r := SendMessage(self.NppData.ScintillaMainHandle, SciSupport.SCI_GETCURRENTPOS, 0, 0);
@@ -421,19 +426,41 @@ begin
   Result := self.FuncArray;
 end;
 
-function TNppPlugin.GetName: PChar;
+function TNppPlugin.GetName: PWChar;
 begin
-  Result := PChar(self.PluginName);
+  Result := PWChar(self.PluginName);
 end;
 
-function TNppPlugin.GetPluginsConfigDir: string;
+procedure TNppPlugin.GetOpenFiles(files: TStrings);
 var
-  s: string;
+  i,nf: integer;
+  tmpfiles: array of WideString;
+begin
+// TODO unicode
+  nf := SendMessageW(self.NppData.NppHandle, NPPM_GETNBOPENFILES, 0, PRIMARY_VIEW);
+  SetLength(tmpfiles, nf);
+  for i:=0 to nf-1 do
+  begin
+    SetLength(tmpfiles[i],500);
+  end;
+  nf := SendMessageW(self.NppData.NppHandle, NPPM_GETOPENFILENAMESPRIMARY, WPARAM(tmpfiles), nf);
+  files.Clear;
+  for i:=0 to nf-1 do
+  begin
+    SetLength(tmpfiles[i], WideStrLen(PWideChar(tmpfiles[i])));
+    files.Add(tmpfiles[i]);
+  end;
+end;
+
+function TNppPlugin.GetPluginsConfigDir: WideString;
+var
+  s: WideString;
   r: integer;
 begin
   SetLength(s, 1001);
-  r := SendMessage(self.NppData.NppHandle, NPPM_GETPLUGINSCONFIGDIR, 1000, LPARAM(PChar(s)));
-  SetString(s, PChar(s), StrLen(PChar(s)));
+  r := SendMessageW(self.NppData.NppHandle, NPPM_GETPLUGINSCONFIGDIR, 1000, LPARAM(PWideChar(s)));
+  SetLength(s, WideStrLen(PWideChar(s)));
+//  SetString(s, PWideChar(s), StrLen(PWideChar(s)));
   Result := s;
 end;
 
@@ -456,17 +483,18 @@ begin
     // Change - to separator items
     hm := GetMenu(self.NppData.NppHandle);
     for i:=0 to Length(self.FuncArray)-1 do
-      if (self.FuncArray[i].ItemName = '-') then
+      if (self.FuncArray[i].ItemName[0] = '-') then
         ModifyMenu(hm, self.FuncArray[i].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
   end;
+  Dispatch(Msg);
 end;
 
 procedure TNppPlugin.RegisterDockingForm(form: TForm{TNppDockingForm});
 var
   r:Integer;
   td: TToolbarData;
-  cap: ^String;
   _form: TNppDockingForm;
+  tmp: String;
 begin
   _form := form as TNppDockingForm;
   FillChar(td,sizeof(td),0);
@@ -474,17 +502,19 @@ begin
   td.ClientHandle := form.Handle;
 
   GetMem(td.Title, 500);
-  StrLCopy(td.Title, PChar(form.Caption), 500);
+  StringToWideChar(form.Caption, td.Title, 500);
+  //StrLCopy(td.Title, PChar(form.Caption), 500);
 
   td.DlgId := _form.DlgId;
-  //td.Mask := DWS_DF_CONT_BOTTOM;{DWS_DF_FLOATING;} // change
-  td.Mask := 0;
+  td.Mask := DWS_DF_CONT_BOTTOM;{DWS_DF_FLOATING;} // change
 //  td.IconTab := nil;
 //  td.AdditionalInfo := Pchar('lala');
 
+  SetLength(tmp, 1000);
+  GetModuleFileName(HInstance, PChar(tmp), 1000);
+  SetLength(tmp, StrLen(PChar(tmp)));
   GetMem(td.ModuleName, 1000);
-  GetModuleFileName(HInstance, td.ModuleName, 1000);
-  StrLCopy(td.ModuleName, PChar(ExtractFileName(td.ModuleName)), 1000);
+  StringToWideChar(ExtractFileName(tmp),td.ModuleName, 1000);
 
   r:=SendMessage(self.NppData.NppHandle, NPPM_DMMREGASDCKDLG, 0, Integer(@td));
 end;
@@ -493,6 +523,15 @@ procedure TNppPlugin.SetInfo(NppData: TNppData);
 begin
   self.NppData := NppData;
   Application.Handle := NppData.NppHandle;
+end;
+
+function WideStrLen(const Str: PWideChar): Cardinal;
+var
+  i: Cardinal;
+begin
+  i := 0;
+  while (Str[i] <> #0) do inc(i);
+  Result := i;
 end;
 
 end.

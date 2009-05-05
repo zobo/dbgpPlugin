@@ -19,7 +19,7 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-Version 0.8. I'm declaring this version a beta, though I still might add a
+Version 0.11. I'm declaring this version a beta, though I still might add a
 feature or two.
 
 NOTE
@@ -59,6 +59,7 @@ FEATURES / TODOS
 + SOURCE support
 + Easy line breakpoint toggle
 - child window position save
++ multi sessions
 
 ( - todo, / started, + done, ? don't know if I'll do it )
 
@@ -83,6 +84,34 @@ xdebug.remote_host=127.0.0.1
 xdebug.remote_enable=1
 xdebug.remote_handler=dbgp
 
+TESTING
+
+One of the simplest ways to test remote debugging is a local command line setup.
+- Download and install PHP - assuming install path is c:\php5
+- Download Xdebug and place it in c:\php5\ext\
+- Add this to c:\php5\php.ini
+    zend_extension_ts=ext/php_xdebug-2.1-5.2.5.dll
+    [xdebug]
+    xdebug.remote_enable=1
+- Open a command prompt and see if xdebug is loaded:
+    C:\test>php -v
+    PHP 5.2.5 (cli) (built: Nov  8 2007 23:18:51)
+    Copyright (c) 1997-2007 The PHP Group
+    Zend Engine v2.2.0, Copyright (c) 1998-2007 Zend Technologies
+        with Xdebug v2.1.0-dev, Copyright (c) 2002-2007, by Derick Rethans
+- Create a simple php file using your favorite editor (Notepad++), for example c:\test\test.php
+    <?php
+    echo "test1\n";
+    xdebug_break();
+    echo "test2\n";
+- In Notepad++ open DBGp options (menu Plugins / DBGp / Config...)
+    - Check "Bypass all mapping..." and click OK
+    - Open the debugger (menu Plugins / DBGp / Debugger)
+- Go back to command line where you stored test.php and type
+    C:\test>set XDEBUG_CONFIG="idekey=xxx"
+	C:\test>php test.php
+- Notepad++ should flash indicating a debugging session is in progress.
+	
 USAGE
 
 When installed the plugin exposes a new submenu in the Plugins menu. The first
@@ -181,9 +210,17 @@ is usefull if you work on a page that loads a bunch of banners that are
 processed on the same domain and each one would fire up the debugger. Turn
 the debugger off and then back on when you need it.
 
+Multiple sessions
+As of 0.10 a pull down box is available on the main window, that enables
+switching between active sessions.
+
 BUILDING
 
 I use Delphi 6 (Update Pack 2), JVCL and VirtualTree.
+
+AUTHOR
+
+Damjan Cvetko <zobo@users.sf.net>
 
 THANKS
 

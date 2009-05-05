@@ -4,13 +4,8 @@ inherited DebugContextForm: TDebugContextForm
   OldCreateOrder = True
   PixelsPerInch = 96
   TextHeight = 13
-  inherited VirtualStringTree1: TVirtualStringTree
-    PopupMenu = PopupMenu1
-  end
-  object PopupMenu1: TPopupMenu
-    Left = 40
-    Top = 24
-    object Refresh1: TMenuItem
+  inherited PopupMenu1: TPopupMenu
+    object Refresh1: TMenuItem [0]
       Caption = 'Refresh'
       OnClick = Refresh1Click
     end

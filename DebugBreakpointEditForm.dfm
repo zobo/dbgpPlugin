@@ -4,7 +4,7 @@ object DebugBreakpointEditForm1: TDebugBreakpointEditForm1
   BorderIcons = [biSystemMenu]
   BorderStyle = bsToolWindow
   Caption = 'Breakpoint'
-  ClientHeight = 379
+  ClientHeight = 409
   ClientWidth = 248
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -99,6 +99,13 @@ object DebugBreakpointEditForm1: TDebugBreakpointEditForm1
     Height = 13
     Caption = 'Class:'
   end
+  object Label13: TLabel
+    Left = 21
+    Top = 352
+    Width = 54
+    Height = 13
+    Caption = 'Expression:'
+  end
   object ComboBox1: TComboBox
     Left = 88
     Top = 32
@@ -187,7 +194,7 @@ object DebugBreakpointEditForm1: TDebugBreakpointEditForm1
   end
   object Button1: TButton
     Left = 88
-    Top = 344
+    Top = 376
     Width = 75
     Height = 25
     Caption = 'Ok'
@@ -198,7 +205,7 @@ object DebugBreakpointEditForm1: TDebugBreakpointEditForm1
   end
   object Button2: TButton
     Left = 168
-    Top = 344
+    Top = 376
     Width = 75
     Height = 25
     Caption = 'Cancel'
@@ -211,5 +218,12 @@ object DebugBreakpointEditForm1: TDebugBreakpointEditForm1
     Width = 145
     Height = 21
     TabOrder = 11
+  end
+  object Edit7: TEdit
+    Left = 88
+    Top = 344
+    Width = 145
+    Height = 21
+    TabOrder = 12
   end
 end

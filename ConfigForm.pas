@@ -43,6 +43,7 @@ type
     SpinEdit2: TSpinEdit;
     Label2: TLabel;
     CheckBox5: TCheckBox;
+    CheckBox6: TCheckBox;
     procedure Button1Click(Sender: TObject);
     procedure DeleteButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -104,6 +105,9 @@ begin
   self.CheckBox5.Checked := (self.Npp as TDbgpNppPlugin).config.break_first_line;
   self.SpinEdit1.Value := (self.Npp as TDbgpNppPlugin).config.max_depth;
   self.SpinEdit2.Value := (self.Npp as TDbgpNppPlugin).config.max_children;
+  self.CheckBox6.Checked := (self.Npp as TDbgpNppPlugin).config.local_setup;
+
+  //self.StringGrid1.Enabled := not self.CheckBox3.Visible;
 
   // kill the DLG... don't hide it...
   self.DefaultCloseAction := caFree;
@@ -132,6 +136,7 @@ begin
   conf.break_first_line := self.CheckBox5.Checked;
   conf.max_depth := self.SpinEdit1.Value;
   conf.max_children := self.SpinEdit2.Value;
+  conf.local_setup := self.CheckBox6.Checked;
 
   (self.Npp as TDbgpNppPlugin).WriteMaps(conf);
 

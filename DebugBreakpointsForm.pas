@@ -36,6 +36,7 @@ type
     Editbreakpoint1: TMenuItem;
     Removebreakpoint1: TMenuItem;
     ImageList1: TImageList;
+    Removeallbreakpoints1: TMenuItem;
     procedure Addbreakpoint1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Editbreakpoint1Click(Sender: TObject);
@@ -47,6 +48,7 @@ type
     procedure VirtualStringTree1GetImageIndex(Sender: TBaseVirtualTree;
       Node: PVirtualNode; Kind: TVTImageKind; Column: TColumnIndex;
       var Ghosted: Boolean; var ImageIndex: Integer);
+    procedure Removeallbreakpoints1Click(Sender: TObject);
   private
     { Private declarations }
     FOnBreakpointAdd: TBreakpointEditCB;
@@ -76,37 +78,34 @@ uses
 
 procedure TDebugBreakpointsForm1.SetBreakpoints(bps: TBreakpoints);
 var
-  i: Integer;
+  i,j: Integer;
   Node: PVirtualNode;
   bp: PBreakpoint;
 begin
+  // save current sci handlers
+  for i:=0 to Length(bps)-1 do
+  begin
+    for j:=0 to Length(self.breakpoints)-1 do
+    begin
+      if (bps[i].id = self.breakpoints[j].id) then
+      begin
+        bps[i].sci_handler := self.breakpoints[j].sci_handler;
+        break;
+      end;
+    end;
+  end;
+
   self.breakpoints := bps;
-  //
+
   self.VirtualStringTree1.Clear;
   self.VirtualStringTree1.BeginUpdate;
 
   for i:=0 to Length(bps)-1 do
   begin
     Node := self.VirtualStringTree1.AddChild(nil);
-    //self.VirtualStringTree1.NodeDataSize := SizeOf(TStackItem);
     bp := self.VirtualStringTree1.GetNodeData(Node);
 
     bp^ := bps[i];
-    {
-    bp^.id := bps[i].id;
-    bp^.breakpointtype := bps[i].breakpointtype;
-    bp^.filename := bps[i].filename;
-    bp^.lineno := bps[i].lineno;
-    bp^.state := bps[i].state;
-    bp^.functionname := bps[i].functionname;
-    bp^.classname := bps[i].classname;
-    bp^.temporary := bps[i].temporary;
-    bp^.hit_count := bps[i].hit_count;
-    bp^.hit_value := bps[i].hit_value;
-    bp^.hit_condition := bps[i].hit_condition;
-    bp^.exception := bps[i].exception;
-    bp^.expression := bps[i].expression;
-    }
   end;
   self.VirtualStringTree1.EndUpdate;
 end;
@@ -132,7 +131,7 @@ end;
 procedure TDebugBreakpointsForm1.Editbreakpoint1Click(Sender: TObject);
 var
   bpf: TDebugBreakpointEditForm1;
-  r: integer;
+  r,i: integer;
   bp: PBreakpoint;
 begin
   if (self.VirtualStringTree1.FocusedNode = nil) then exit;
@@ -141,7 +140,18 @@ begin
   bpf := TDebugBreakpointEditForm1.Create(self);
   bpf.SetBreakpoint(bp^);
   r := bpf.ShowModal;
-  if (r = mrOK) and (Assigned(self.FOnBreakpointEdit)) then self.FOnBreakpointEdit(self, bpf.breakpoint);
+  if (r = mrOK) and (Assigned(self.FOnBreakpointEdit)) then
+  begin
+    bp^ := bpf.breakpoint; // prepisi?
+    // izoliraj genericno kodo - update breakpoint
+    for i:=0 to Length(self.breakpoints)-1 do
+    begin
+      if (bpf.breakpoint.id <> self.breakpoints[i].id) then continue;
+      self.breakpoints[i] := bpf.breakpoint;
+      break;
+    end;
+    self.FOnBreakpointEdit(self, bpf.breakpoint);
+  end;
   bpf.Free;
 end;
 
@@ -243,6 +253,19 @@ begin
   end;
   SetLength(tmp, j);
   self.SetBreakpoints(tmp);
+end;
+
+procedure TDebugBreakpointsForm1.Removeallbreakpoints1Click(
+  Sender: TObject);
+var
+  bp2: TBreakpoint;
+begin
+  while (Length(self.breakpoints)>0) do
+  begin
+    bp2 := self.breakpoints[0];
+    self.RemoveBreakpoint(self.breakpoints[0]);
+    if (Assigned(self.FOnBreakpointDelete)) then self.FOnBreakpointDelete(self, bp2);
+  end;
 end;
 
 end.

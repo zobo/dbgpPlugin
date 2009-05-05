@@ -25,7 +25,7 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, JvDockTree, JvDockControlForm, JvDockVIDStyle, JvDockVSNetStyle,
   JvComponentBase, VirtualTrees, DbgpWinSocket, DebugInspectorForm, nppplugin,
-  Menus, StrUtils, NppDockingForm;
+  Menus, StrUtils, NppDockingForm, Clipbrd;
 
 type
   TNodeCompareData = record
@@ -37,6 +37,8 @@ type
   TDebugVarForm = class(TNppDockingForm)
     VirtualStringTree1: TVirtualStringTree;
     JvDockClient1: TJvDockClient;
+    PopupMenu1: TPopupMenu;
+    Copy1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure VirtualStringTree1GetText(Sender: TBaseVirtualTree;
       Node: PVirtualNode; Column: TColumnIndex; TextType: TVSTTextType;
@@ -51,6 +53,8 @@ type
     procedure VirtualStringTree1CompareNodes(Sender: TBaseVirtualTree;
       Node1, Node2: PVirtualNode; Column: TColumnIndex;
       var Result: Integer);
+    procedure PopupMenu1Popup(Sender: TObject);
+    procedure Copy1Click(Sender: TObject);
   private
     { Private declarations }
     function SubSetVars(ParentNode: PVirtualNode; list:TPropertyItems; CompareList: TList): Boolean;
@@ -283,6 +287,7 @@ procedure TDebugVarForm.VirtualStringTree1CompareNodes(
 var
   Item1, Item2: PPropertyItem;
   s1,s2: string;
+  i1,i2: integer;
 begin
   Item1 := PPropertyItem(Sender.GetNodeData(Node1));
   Item2 := PPropertyItem(Sender.GetNodeData(Node2));
@@ -291,7 +296,27 @@ begin
   1: begin s1 := Item1.data; s2 := Item2.data; end;
   2: begin s1 := Item1.datatype; s2 := Item2.datatype; end;
   end;
-  if (s1 < s2) then Result := -1 else Result := 1;
+  try
+    i1 := StrToInt(s1);
+    i2 := StrToInt(s2);
+    if (i1 < i2) then Result := -1 else Result := 1;
+  except
+    if (s1 < s2) then Result := -1 else Result := 1;
+  end;
+end;
+
+procedure TDebugVarForm.PopupMenu1Popup(Sender: TObject);
+begin
+  self.Copy1.Enabled := (self.VirtualStringTree1.FocusedNode <> nil);
+end;
+
+procedure TDebugVarForm.Copy1Click(Sender: TObject);
+var
+  Item: PPropertyItem;
+begin
+  if (self.VirtualStringTree1.FocusedNode = nil) then exit;
+  Item := PPropertyItem(self.VirtualStringTree1.GetNodeData(self.VirtualStringTree1.FocusedNode));
+  if (Item^.data <> '') then Clipboard.SetTextBuf(PChar(Item^.data));
 end;
 
 end.

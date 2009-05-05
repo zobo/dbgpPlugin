@@ -76,8 +76,8 @@ end;
 
 procedure TAboutForm1.FormCreate(Sender: TObject);
 var
-  path,v: string;
-  n,i: cardinal;
+  path: string;
+  i: cardinal;
   ma,mi,re,bu:integer;
 
 begin

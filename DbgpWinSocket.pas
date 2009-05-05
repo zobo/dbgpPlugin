@@ -71,6 +71,7 @@ type
   PBreakpoint = ^TBreakpoint;
   TBreakpoint = record
     id: string;
+    sci_handler: integer;
     breakpointtype: TBreakpointType;
     filename: string;
     lineno: integer;
@@ -102,14 +103,15 @@ type
   TDbgpWinSocket = class(TServerClientWinSocket)
   private
     { Private declarations }
-    xml: IXMLDocument;
+    xml: IXMLDocument; // todo, move to parameter passing
     buffer: String;
     TransID: Integer;
     lastEval: String;
-    init: TInit;
+    FInit: TInit;
     remote_unix: boolean;
     last_source_request: string;
     source_files: TStringList;
+    mapped_files: TStringList;
     AsyncDbgpCall: TAsyncDbgpCall;
 {$IFDEF DBGP_COMPRESSION}
     compression: boolean;
@@ -144,14 +146,19 @@ type
     procedure ProcessProperty(varxml:IXMLNodeList; var list:TPropertyItems; ParentItem: PPropertyItem); overload;
     function WaitForAsyncAnswer(call_data: string): boolean;
     function CheckForError(varxml: IXMLNodeList): string;
+
+    function UriToFile(Remote: String): String;
   public
     { Public declarations }
     maps: TMaps;
     use_source: boolean;
+    local_setup: boolean;
     debugdata: TStringList;
     stack: TStackList;
     Transaction_id: String;
     last_response_command: String;
+    state: TDbgpState;
+    stack_reentrant: boolean;
     constructor Create(Socket: TSocket; ServerWinSocket: TServerWinSocket);
     destructor Destroy; override;
     function ReadDBGP: String;
@@ -179,6 +186,7 @@ type
     function SendCommand(Cmd: String): Integer; overload;
   published
     { Published declarations }
+    property Init: TInit read Finit;
     property OnDbgpStack: TStackCB read FOnDbgpStack write FOnDbgpStack;
     property OnDbgpBreak: TBreakCB read FOnDbgpBreak write FOnDbgpBreak;
     property OnDbgpStream: TStreamCB read FOnDbgpStream write FOnDbgpStream;
@@ -192,9 +200,21 @@ type
 procedure FreePropertyItems(list: TPropertyItems);
 //procedure DuplicatePropertyItems(var list: TPropertyItems);
 
+function GetLongPathName(lpszShortPath: PChar; lpszLongPath: PChar ; cchBuffer: DWORD): DWORD; stdcall;
+{$EXTERNALSYM GetLongPathName}
+function GetLongPathNameA(lpszShortPath: PAnsiChar; lpszLongPath: PAnsiChar ; cchBuffer: DWORD): DWORD; stdcall;
+{$EXTERNALSYM GetLongPathNameA}
+function GetLongPathNameW(lpszShortPath: PWideChar; lpszLongPath: PWideChar ; cchBuffer: DWORD): DWORD; stdcall;
+{$EXTERNALSYM GetLongPathNameW}
+
 implementation
 
 { TDbgpWinSocket }
+
+function GetLongPathName; external kernel32 name 'GetLongPathNameA';
+function GetLongPathNameA; external kernel32 name 'GetLongPathNameA';
+function GetLongPathNameW; external kernel32 name 'GetLongPathNameW';
+
 
  // predvidevamo praviln XML
 constructor TDbgpWinSocket.Create(Socket: TSocket;
@@ -208,7 +228,10 @@ begin
   self.remote_unix := true;
   self.source_files := TStringList.Create;
   self.source_files.CaseSensitive := true;
+  self.mapped_files := TStringList.Create;
+  self.mapped_files.CaseSensitive := true;
   self.AsyncDbgpCall.TransID := ''; // not set
+  self.stack_reentrant := false;
 {$IFDEF DBGP_COMPRESSION}
   self.compression := false;
 {$ENDIF}
@@ -229,93 +252,115 @@ begin
 end;
 
 {-----------------------------------------------------------------------------}
+{I am rewriting the mapping from scratch usin "raw" data}
 
-function TDbgpWinSocket.MapLocalToRemote(Local: String): String;
-var
-  i: integer;
-  r: string;
+// file:///D:/xxx/php/test1.php  D:\xxx\php\test1.php
+// file:///var/www/spike.krneki.org/html/dbg/test1.php \\spike2\dbg\test1.php
+// local_setup, dbgp:, use_source
+
+
+// remote to local
+
+// used to map straight local files: file:///D:/xxx/php/test1.php  D:\xxx\php\test1.php
+function TDbgpWinSocket.UriToFile(Remote: String): String;
 begin
-  r := self.MapLocalToSource(Local);
-  if (r <> '') then
-  begin
-    Result := r;
-    exit;
-  end;
-  Result := 'file:///'+URLEncode(Local);
-  if (not Assigned(self.maps)) then
-  begin
-    exit;
-  end;
-  for i:=0 to Length(self.maps)-1 do
-  begin
-    if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.init.server) then continue;
-    if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
-    if (CompareText(self.maps[i][3], LeftStr(Local, Length(self.maps[i][3])))=0) then
-    begin
-      r := self.maps[i][2] + Copy(Local, Length(self.maps[i][3])+1, MaxInt);
-      r := StringReplace(r, '\', '/', [rfReplaceAll]);
-      if (self.remote_unix) then Result := 'file://' + URLEncode(r);
-      if (not self.remote_unix) then Result := 'file:///' + URLEncode(r);
-      exit;
-    end;
-  end;
-  ShowMessage('Unable to map filename: '+Local+' (ip: '+self.init.server+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
   Result := '';
+  if (LeftStr(Remote, 8)='file:///') and (Length(Remote)>9) and (Remote[10]=':') then
+  begin
+    Remote := Copy(Remote,9,MaxInt);
+    Result := StringReplace(Remote, '/', '\', [rfReplaceAll]);
+  end;
 end;
 
-// Todo: This ugly thing needs rewriting!
 function TDbgpWinSocket.MapRemoteToLocal(Remote: String): String;
 var
   i: integer;
   r: string;
-  Remote2: string;
 begin
   Remote := URLDecode(Remote);
-  Remote2 := Remote;
-  if (LeftStr(Remote, 5)='dbgp:') or (self.use_source) then
+
+  // 1. if local_setup dont do any mapping. throw errors and fallback to source mapping
+  if (self.local_setup) and (LeftStr(Remote, 5)<>'dbgp:') then
   begin
-    r := self.MapSourceToLocal(Remote);
+    r := self.UriToFile(Remote);
+    if (r = '') then
+    begin
+      ShowMessage('Unable to map remote: '+Remote+' (ip: '+self.init.server+' idekey: '+self.init.idekey+' local_setup) fallback to source');
+      r := self.MapSourceToLocal(Remote);
+    end;
     Result := r;
     exit;
   end;
-  if (LeftStr(Remote, 8)='file:///') and (Length(Remote)>9) and (Remote[10]=':') then
-  begin
-    self.remote_unix := false;
-    Remote := Copy(Remote,9,MaxInt);
-    Remote := StringReplace(Remote, '/', '\', [rfReplaceAll]);
-  end
-  else if (LeftStr(Remote, 7)='file://') then
-  begin
-    Remote := Copy(Remote,8,MaxInt);
-  end;
-  Result := Remote;
 
-  if (not Assigned(self.maps)) then
+  // 2. if use_source or dbgp:, very simple it always sucseeds.
+  if (LeftStr(Remote, 5)='dbgp:') or (self.use_source) then
   begin
+    Result := self.MapSourceToLocal(Remote);
     exit;
   end;
+
+  // 3. normal mapping
   for i:=0 to Length(self.maps)-1 do
   begin
     if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.init.server) then continue;
     if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
     if (CompareText(self.maps[i][2], LeftStr(Remote, Length(self.maps[i][2])))=0) then
     begin
-      r := self.maps[i][3];
-      if (r = 'DBGP:') then
+      // force dbgp:
+      if (self.maps[i][3] = 'DBGP:') then
       begin
-        Result := self.MapSourceToLocal(Remote2);
+        Result := self.MapSourceToLocal(Remote);
         exit;
       end;
-      r := r + Copy(Remote, Length(self.maps[i][2])+1, MaxInt);
-      if (self.remote_unix) then r := StringReplace(r, '/', '\', [rfReplaceAll]);
-      Result := r;
+      r := Copy(Remote, Length(self.maps[i][2])+1, MaxInt);
+      Result := self.maps[i][3] + StringReplace(r, '/', '\', [rfReplaceAll]);
       exit;
     end;
   end;
+
+  // 4. No map found, try local or warn and fallback to source
   // throw exception??
-  //ShowMessage('Unable to map filename: '+Remote+' (ip: '+self.init.server+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
-  // fallback to source
-  Result := self.MapSourceToLocal(Remote2);
+  r := self.UriToFile(Remote);
+  Result := r;
+  if (r<>'') and (FileExists(r)) then exit;
+  ShowMessage('Unable to map remote: '+Remote+' (ip: '+self.init.server+' idekey: '+self.init.idekey+') fallback to source');
+  Result := self.MapSourceToLocal(Remote);
+end;
+
+
+function TDbgpWinSocket.MapLocalToRemote(Local: String): String;
+var
+  i: integer;
+  r: string;
+begin
+  // 1. Try existing source maps
+  r := self.MapLocalToSource(Local);
+  if (r <> '') then
+  begin
+    Result := r;
+    exit;
+  end;
+  // 2. If local setup, translate blindly
+  if (self.local_setup) then
+  begin
+    Result := 'file:///'+URLEncode(StringReplace(Local, '\', '/', [rfReplaceAll]));
+    exit;
+  end;
+  // 3. Use maps
+  for i:=0 to Length(self.maps)-1 do
+  begin
+    if (self.maps[i][0] <> '') and (self.maps[i][0] <> self.init.server) then continue;
+    if (self.maps[i][1] <> '') and (self.maps[i][1] <> self.init.idekey) then continue;
+    if (CompareText(self.maps[i][3], LeftStr(Local, Length(self.maps[i][3])))=0) then
+    begin
+      r := Copy(Local, Length(self.maps[i][3])+1, MaxInt);
+      r := StringReplace(r, '\', '/', [rfReplaceAll]);
+      Result := self.maps[i][2] + r;
+      exit;
+    end;
+  end;
+  ShowMessage('Unable to map filename: '+Local+' (ip: '+self.init.server+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
+  Result := '';
 end;
 
 { mappings for source command }
@@ -336,8 +381,9 @@ end;
 
 function TDbgpWinSocket.MapSourceToLocal(Source: String): String;
 var
-  s: String;
+  s,s2: String;
   source2: String;
+  r: integer;
 begin
   Result := '';
   s := '';
@@ -352,6 +398,14 @@ begin
   begin
     self.source_files.Add(Source);
     self.GetSource(Source);
+  end;
+  r := GetLongPathName(PChar(s), nil, 0);
+  if (r>0) then
+  begin
+    SetLength(s2, r);
+    GetLongPathName(PChar(s), Pchar(s2), r);
+    SetLength(s2, r-1); // cut last null ?
+    s := s2;
   end;
   Result := s;
 end;
@@ -379,12 +433,13 @@ Data(404): <?xml version="1.0" encoding="iso-8859-1"?>
 
 </init>
 }
-  self.init.language := self.xml.ChildNodes[1].Attributes['language'];
-  self.init.appid := self.xml.ChildNodes[1].Attributes['appid'];
-  self.init.idekey := self.xml.ChildNodes[1].Attributes['idekey'];
-  self.init.server := self.xml.ChildNodes[1].Attributes['proxied'];
-  if (self.init.server = '') then self.init.server := self.RemoteAddress;
-  self.init.filename := self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
+  self.state := dsStarting;
+  self.FInit.language := self.xml.ChildNodes[1].Attributes['language'];
+  self.FInit.appid := self.xml.ChildNodes[1].Attributes['appid'];
+  self.FInit.idekey := self.xml.ChildNodes[1].Attributes['idekey'];
+  self.FInit.server := self.xml.ChildNodes[1].Attributes['proxied'];
+  if (self.FInit.server = '') then self.FInit.server := self.RemoteAddress;
+  self.FInit.filename := self.MapRemoteToLocal(self.xml.ChildNodes[1].Attributes['fileuri']);
 
 {$IFDEF DBGP_COMPRESSION}
   // try to negotiate compression
@@ -503,6 +558,7 @@ begin
 ----}
   if (self.xml.ChildNodes[1].Attributes['status'] = 'break') then
   begin
+    self.state := dsBreak;
     if (Assigned(self.FOnDbgpBreak)) then
       self.FOnDbgpBreak(self, false)
     else
@@ -511,6 +567,7 @@ begin
   else
   if (self.xml.ChildNodes[1].Attributes['status'] = 'stopped') then
   begin
+    self.state := dsStopped;
     if (Assigned(self.FOnDbgpBreak)) then
     begin
       // when finished...
@@ -521,6 +578,7 @@ begin
   else
   if (self.xml.ChildNodes[1].Attributes['status'] = 'stopping') then
   begin
+    self.state := dsStopping;
     if (Assigned(self.FOnDbgpBreak)) then
     begin
       self.FOnDbgpBreak(self, true);
@@ -690,6 +748,36 @@ procedure TDbgpWinSocket.ProcessResponse_source;
 var
   ret: String;
   f: TextFile;
+
+function phpunescape(s:string):string;
+var
+  r: string;
+  i: integer;
+  esc: boolean;
+begin
+  esc := false;
+  for i:=1 to Length(s) do
+  begin
+    if (esc) then
+    begin
+      case s[i] of
+        'n': r := r + #10;
+        'r': r := r + #13;
+        '\': r := r + '\';
+      else
+        r := r + '\';
+      end;
+      esc := false;
+    end
+    else
+    if (s[i]='\') then
+      esc := true
+    else
+      r := r + s[i];
+  end;
+  Result := r;
+end;
+
 begin
 {
 <?xml version="1.0" encoding="iso-8859-1"?>
@@ -716,6 +804,8 @@ command]]></message></error></response>}
     FileSetReadOnly(self.MapSourceToLocal(self.last_source_request), false);
     AssignFile(f, self.MapSourceToLocal(self.last_source_request));
     Rewrite(f);
+    if (LeftStr(self.last_source_request, 5)='dbgp:') then
+      ret := phpunescape(ret);
     WriteLn(f, ret);
     CloseFile(f);
     FileSetReadOnly(self.MapSourceToLocal(self.last_source_request), true);
@@ -902,6 +992,7 @@ begin
   Stop: cmd := 'stop';
   end;
   if (cmd = '') then exit;
+  self.state := dsRunning;
   self.SendCommand(cmd);
 end;
 
