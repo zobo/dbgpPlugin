@@ -65,7 +65,7 @@ IncludeVerInfo=1
 AutoIncBuild=1
 MajorVer=0
 MinorVer=0
-Release=11
+Release=12
 Build=20
 Debug=0
 PreRelease=1
@@ -77,7 +77,7 @@ CodePage=1252
 [Version Info Keys]
 CompanyName=Damjan Zobo Cvetko
 FileDescription=DBGP Plugin for Notepad++
-FileVersion=0.0.11.20
+FileVersion=0.0.12.20
 InternalName=
 LegalCopyright=GPL
 LegalTrademarks=

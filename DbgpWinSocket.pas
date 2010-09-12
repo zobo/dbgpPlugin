@@ -278,6 +278,7 @@ var
   r: string;
 begin
   Remote := URLDecode(Remote);
+  self.remote_unix := not ((LeftStr(Remote, 8)='file:///') and (Length(Remote)>9) and (Remote[10]=':'));
 
   // 1. if local_setup dont do any mapping. throw errors and fallback to source mapping
   if (self.local_setup) and (LeftStr(Remote, 5)<>'dbgp:') then
@@ -358,6 +359,12 @@ begin
       Result := self.maps[i][2] + r;
       exit;
     end;
+  end;
+  // 4. final try to map to filenam if local connection
+  if (not self.remote_unix and (self.Init.server = '127.0.0.1')) then
+  begin
+    Result := 'file:///'+URLEncode(StringReplace(Local, '\', '/', [rfReplaceAll]));
+    exit;
   end;
   ShowMessage('Unable to map filename: '+Local+' (ip: '+self.init.server+' idekey: '+self.init.idekey+') unix: '+BoolToStr(self.remote_unix,true));
   Result := '';

@@ -772,6 +772,7 @@ begin
     self.sock.local_setup := (self.Npp as TDbgpNppPlugin).config.local_setup;
     self.sock.SetFeature('max_depth',IntToStr((self.Npp as TDbgpNppPlugin).config.max_depth));
     self.sock.SetFeature('max_children',IntToStr((self.Npp as TDbgpNppPlugin).config.max_children));
+    self.sock.SetFeature('max_data',IntToStr((self.Npp as TDbgpNppPlugin).config.max_data));
   end;
 end;
 

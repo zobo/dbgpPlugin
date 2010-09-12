@@ -19,7 +19,7 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-Version 0.11. I'm declaring this version a beta, though I still might add a
+Version 0.12. I'm declaring this version a beta, though I still might add a
 feature or two.
 
 NOTE
@@ -73,6 +73,8 @@ enabled.
 
 Try to look at this too:
 http://www.judiwa.com/wiki/How_to_Setup_BDGp_debugger_in_Notepad%2B%2B_to_Debug_PHP
+
+Also check out the forums on Notepad++ and Notepad++ plugins SourceForge pages.
 
 SERVER SIDE INSTALL
 
@@ -213,6 +215,11 @@ the debugger off and then back on when you need it.
 Multiple sessions
 As of 0.10 a pull down box is available on the main window, that enables
 switching between active sessions.
+
+MISC
+
+To change the port the debugger listens on, find the config file (dbgp.ini) and
+add key "listen_port" under "misc" section. Default port is 9000.
 
 BUILDING
 

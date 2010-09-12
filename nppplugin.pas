@@ -469,7 +469,7 @@ var
   s: string;
 begin
   SetLength(s, 800);
-  SendMessage(self.NppData.NppHandle, NPPM_GETCURRENTWORD,0,LPARAM(PChar(s)));
+  SendMessage(self.NppData.NppHandle, NPPM_GETCURRENTWORD,800,LPARAM(PChar(s)));
   Result := s;
 end;
 
@@ -478,14 +478,6 @@ var
   hm: HMENU;
   i: integer;
 begin
-  if (Msg.Msg = WM_CREATE) then
-  begin
-    // Change - to separator items
-    hm := GetMenu(self.NppData.NppHandle);
-    for i:=0 to Length(self.FuncArray)-1 do
-      if (self.FuncArray[i].ItemName[0] = '-') then
-        ModifyMenu(hm, self.FuncArray[i].CmdID, MF_BYCOMMAND or MF_SEPARATOR, 0, nil);
-  end;
   Dispatch(Msg);
 end;
 

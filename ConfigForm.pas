@@ -44,6 +44,8 @@ type
     Label2: TLabel;
     CheckBox5: TCheckBox;
     CheckBox6: TCheckBox;
+    Label3: TLabel;
+    SpinEdit3: TSpinEdit;
     procedure Button1Click(Sender: TObject);
     procedure DeleteButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -106,6 +108,7 @@ begin
   self.SpinEdit1.Value := (self.Npp as TDbgpNppPlugin).config.max_depth;
   self.SpinEdit2.Value := (self.Npp as TDbgpNppPlugin).config.max_children;
   self.CheckBox6.Checked := (self.Npp as TDbgpNppPlugin).config.local_setup;
+  self.SpinEdit3.Value := (self.Npp as TDbgpNppPlugin).config.max_data;
 
   //self.StringGrid1.Enabled := not self.CheckBox3.Visible;
 
@@ -137,6 +140,7 @@ begin
   conf.max_depth := self.SpinEdit1.Value;
   conf.max_children := self.SpinEdit2.Value;
   conf.local_setup := self.CheckBox6.Checked;
+  conf.max_data := self.SpinEdit3.Value;
 
   (self.Npp as TDbgpNppPlugin).WriteMaps(conf);
 

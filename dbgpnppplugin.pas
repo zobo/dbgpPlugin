@@ -45,6 +45,7 @@ type
     max_depth: integer;
     max_children: integer;
     listen_port: integer;
+    max_data: integer;
   end;
   TDbgpMenuState = ( dmsOff, dmsDisconnected, dmsConnected );
   TDbgpNppPlugin = class(TNppPlugin)
@@ -55,6 +56,7 @@ type
     menuEvalIndex: Integer;
     procedure GrayFuncItem(i: integer);
     procedure EnableFuncItem(i: integer);
+    procedure InitMarkers;
   public
     //maps: TMaps;
     config: TDbgpNppPluginConfig;
@@ -62,7 +64,6 @@ type
     destructor Destroy; override;
 
     procedure BeNotified(sn: PSCNotification); override;
-    procedure NppWmCreate(var Msg: TMessage); message WM_CREATE;
 
     procedure FuncDebugger;
     procedure FuncConfig;
@@ -121,6 +122,10 @@ var
   s: string;
   i: integer;
 begin
+  if (sn^.nmhdr.code = NPPN_READY) then
+  begin
+    self.InitMarkers;
+  end;
   if (sn^.nmhdr.code = SCN_DWELLSTART) then
   begin
     //if (Assigned(self.TestForm)) then self.TestForm.OnDwell();
@@ -212,7 +217,7 @@ begin
   inc(i);
 
   StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
-  self.FuncArray[i].Func := _FuncDebugger;
+  self.FuncArray[i].Func := nil;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
@@ -259,7 +264,7 @@ begin
   inc(i);
 
   StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
-  self.FuncArray[i].Func := _FuncDebugger;
+  self.FuncArray[i].Func := nil;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
@@ -283,7 +288,7 @@ begin
   // add stack and context items...
 
   StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
-  self.FuncArray[i].Func := _FuncDebugger;
+  self.FuncArray[i].Func := nil;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
@@ -313,7 +318,7 @@ begin
   inc(i);
 
   StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
-  self.FuncArray[i].Func := _FuncDebugger;
+  self.FuncArray[i].Func := nil;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
@@ -323,7 +328,7 @@ begin
   inc(i);
 
   StringToWideChar('-', self.FuncArray[i].ItemName, FuncItemNameLen);
-  self.FuncArray[i].Func := _FuncDebugger;
+  self.FuncArray[i].Func := nil;
   self.FuncArray[i].ShortcutKey := nil;
   inc(i);
 
@@ -520,7 +525,7 @@ begin
   if (Assigned(self.MainForm)) then self.MainForm.Open(dctWatches, true);
 end;
 
-procedure TDbgpNppPlugin.NppWmCreate(var Msg: TMessage);
+procedure TDbgpNppPlugin.InitMarkers;
 var
   test: array [0..18] of String;
   r: integer;
@@ -588,7 +593,8 @@ begin
   self.config.listen_port := ini.ReadInteger('Misc','listen_port',9000);
   self.config.max_depth := ini.ReadInteger('Features','max_depth',3);
   self.config.max_children := ini.ReadInteger('Features','max_children',15);
-  self.config.local_setup := ( ini.ReadString('Misc','local_setup','0') = '1' );
+  self.config.local_setup := ( ini.ReadString('Misc','local_setup','1') = '1' );
+  self.config.max_data := ini.ReadInteger('Features','max_data',512);
 
   ini.Free;
   xmaps.Free;
@@ -640,6 +646,7 @@ begin
 
   ini.WriteInteger('Features','max_depth',conf.max_depth);
   ini.WriteInteger('Features','max_children',conf.max_children);
+  ini.WriteInteger('Features','max_data',conf.max_data);
 
   ini.Free;
 

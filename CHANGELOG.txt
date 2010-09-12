@@ -1,3 +1,11 @@
+2010-08-12 v0.12 beta
+
+Added max_data to config dialog.
+Using NPPN_READY to initialize markers. WM_CREATE is not available in 5.7 anymore.
+Updated FuncArray, separators now have Func set to nil.
+Mapping logic tries to fall back to direct local mapping if nothing matches.
+Small update for NPPM_GETCURRENTWORD.
+
 2009-05-05 v0.11 beta
 
 A quick fix for markers as N++ masks them.
