@@ -40,7 +40,6 @@ object DebugVarForm: TDebugVarForm
     PopupMenu = PopupMenu1
     ShowHint = True
     TabOrder = 0
-    TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScrollOnExpand, toAutoSort, toAutoTristateTracking, toAutoDeleteMovedNodes]
     TreeOptions.SelectionOptions = [toFullRowSelect]
     TreeOptions.StringOptions = [toSaveCaptions]
     OnCompareNodes = VirtualStringTree1CompareNodes
@@ -48,6 +47,7 @@ object DebugVarForm: TDebugVarForm
     OnGetText = VirtualStringTree1GetText
     OnPaintText = VirtualStringTree1PaintText
     OnHeaderClick = VirtualStringTree1HeaderClick
+    OnInitChildren = VirtualStringTree1InitChildren
     Columns = <
       item
         Options = [coAllowClick, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible]

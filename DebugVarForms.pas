@@ -55,6 +55,8 @@ type
       var Result: Integer);
     procedure PopupMenu1Popup(Sender: TObject);
     procedure Copy1Click(Sender: TObject);
+    procedure VirtualStringTree1InitChildren(Sender: TBaseVirtualTree;
+      Node: PVirtualNode; var ChildCount: Cardinal);
   private
     { Private declarations }
     function SubSetVars(ParentNode: PVirtualNode; list:TPropertyItems; CompareList: TList): Boolean;
@@ -141,6 +143,7 @@ begin
   self.SubSetVars(nil, list, cmplist);
 
   self.VirtualStringTree1.EndUpdate;
+  self.VirtualStringTree1.SortTree(self.VirtualStringTree1.Header.SortColumn, self.VirtualStringTree1.Header.SortDirection, False);
   for i:=0 to cmplist.Count-1 do
   begin
     Dispose(cmplist[i]);
@@ -180,6 +183,8 @@ begin
     Item^.numchildren := list[i].numchildren;
     Item^.data := list[i].data;
     Item^.children := nil;
+
+    if (Item^.haschildren) then self.VirtualStringTree1.HasChildren[Node] := true;
 
     ItemEx^.changed := false;
     // get compare data
@@ -279,6 +284,7 @@ begin
     self.VirtualStringTree1.Header.SortDirection := sdDescending
   else
     self.VirtualStringTree1.Header.SortDirection := sdAscending;
+  self.VirtualStringTree1.SortTree(self.VirtualStringTree1.Header.SortColumn, self.VirtualStringTree1.Header.SortDirection, False);
 end;
 
 procedure TDebugVarForm.VirtualStringTree1CompareNodes(
@@ -317,6 +323,28 @@ begin
   if (self.VirtualStringTree1.FocusedNode = nil) then exit;
   Item := PPropertyItem(self.VirtualStringTree1.GetNodeData(self.VirtualStringTree1.FocusedNode));
   if (Item^.data <> '') then Clipboard.SetTextBuf(PChar(Item^.data));
+end;
+
+procedure TDebugVarForm.VirtualStringTree1InitChildren(
+  Sender: TBaseVirtualTree; Node: PVirtualNode; var ChildCount: Cardinal);
+var
+  Item: PPropertyItem;
+  list: TPropertyItems;
+  cmplist: TList;
+begin
+  Item := self.VirtualStringTree1.GetNodeData(node);
+  ChildCount := 0;
+  TNppDockingForm1(self.Owner).sock.GetPropertyAsync(Item^.fullname, list);
+  if (list[0].datatype <> 'Error') then // there should be more correct error handling
+  begin
+    cmplist := TList.Create;
+    self.VirtualStringTree1.BeginUpdate;
+    SubSetVars(Node, list[0].children^, cmplist);
+    self.VirtualStringTree1.EndUpdate;
+    self.VirtualStringTree1.SortTree(self.VirtualStringTree1.Header.SortColumn, self.VirtualStringTree1.Header.SortDirection, False);
+    ChildCount := Length(list[0].children^);
+  end;
+
 end;
 
 end.

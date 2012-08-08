@@ -128,8 +128,15 @@ implementation
 uses dbgpnppplugin, nppplugin, SciSupport;
 
 destructor TNppDockingForm1.Destroy;
+var
+  i: Integer;
+  sock: TDbgpWinSocket;
 begin
-  if (Assigned(self.sock)) then self.sock.Close;
+  for i:=self.ComboBox1.Items.Count-1 downto 1 do
+  begin
+    sock := self.ComboBox1.Items.Objects[i] as TDbgpWinSocket;
+    if sock<>nil then sock.Close;
+  end;
   if (self.ServerSocket1.Active) then self.ServerSocket1.Close;
   inherited;
 end;
@@ -225,13 +232,16 @@ begin
     // test hack
     if (FileExists(Stack[0].filename)) then
     begin
-      self.sock.stack_reentrant := false;
+      Sender.stack_reentrant := false;
       GotoLine(Stack[0].filename, Stack[0].lineno)
     end
     else
     begin
-      if (not self.sock.stack_reentrant) then self.sock.GetStack; // let the file get processed and ask for stack again..
-      self.sock.stack_reentrant := true;
+      if (not Sender.stack_reentrant) then
+      begin
+        Sender.stack_reentrant := true;
+        Sender.GetStack; // let the file get processed and ask for stack again..
+      end;
     end;
   end;
 
@@ -270,7 +280,7 @@ begin
         end;
       end;
     end;
-    self.sock.SetBreakpoint(self.DebugBreakpointsForm1.breakpoints[i]);
+    Sender.SetBreakpoint(self.DebugBreakpointsForm1.breakpoints[i]);
   end;
   tmp.Free;
   // za take stvaro obstaja switch...
@@ -416,9 +426,9 @@ begin
     Sender.GetStack;
     self.SetState(Sender.state);
     // update stuff
-    self.sock.GetBreakpoints;
-    if (self.Npp as TDbgpNppPlugin).config.refresh_local then self.sock.GetContext(0);
-    if (self.Npp as TDbgpNppPlugin).config.refresh_global then self.sock.GetContext(1);
+    Sender.GetBreakpoints;
+    if (self.Npp as TDbgpNppPlugin).config.refresh_local then Sender.GetContext(0);
+    if (self.Npp as TDbgpNppPlugin).config.refresh_global then Sender.GetContext(1);
     if (Assigned(self.DebugWatchForm)) then self.DebugWatchForm.DoChange;
   end
   else
@@ -487,6 +497,7 @@ begin
   bp.lineno := i+1;
   bp.state := true;
   bp.temporary := true;
+  // todo: check it is assigned
   self.sock.SetBreakpoint(bp);
   self.DoResume(Run);
   // do run to

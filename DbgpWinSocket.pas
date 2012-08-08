@@ -671,7 +671,7 @@ begin
   //process context
   if (self.xml.ChildNodes[1].HasChildNodes) and (self.xml.ChildNodes[1].ChildNodes[0].NodeName = 'error') then
   begin
-    ShowMessage('Error ('+self.xml.ChildNodes[1].ChildNodes[0].Attributes['code']+'): '+
+    ShowMessage('DBGP Error ('+self.xml.ChildNodes[1].ChildNodes[0].Attributes['code']+'): '+
       self.xml.ChildNodes[1].ChildNodes[0].ChildNodes[0].ChildNodes[0].NodeValue);
     exit;
   end;
@@ -713,6 +713,7 @@ begin
   i := 0;
   while (x <> nil) do
   begin
+    if x.NodeName<>'stack' then continue;
     inc(i);
     SetLength(stack, i);
     stack[i-1].level := StrToInt(x.Attributes['level']);
