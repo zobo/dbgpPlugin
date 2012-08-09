@@ -16,6 +16,7 @@ object DebugVarForm: TDebugVarForm
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   DesignSize = (
     387
     292)

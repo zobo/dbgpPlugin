@@ -57,7 +57,9 @@ type
     procedure Copy1Click(Sender: TObject);
     procedure VirtualStringTree1InitChildren(Sender: TBaseVirtualTree;
       Node: PVirtualNode; var ChildCount: Cardinal);
+    procedure FormDestroy(Sender: TObject);
   private
+    cmplist: TList;
     { Private declarations }
     function SubSetVars(ParentNode: PVirtualNode; list:TPropertyItems; CompareList: TList): Boolean;
     procedure GenerateCompareData(var list: TList; node: PVirtualNode);
@@ -85,6 +87,18 @@ uses
 procedure TDebugVarForm.FormCreate(Sender: TObject);
 begin
   self.VirtualStringTree1.NodeDataSize := SizeOf(TPropertyItemEx);
+  self.cmplist := TList.Create;
+end;
+
+procedure TDebugVarForm.FormDestroy(Sender: TObject);
+var
+  i: integer;
+begin
+  for i:=0 to cmplist.Count-1 do
+  begin
+    Dispose(cmplist[i]);
+  end;
+  cmplist.Destroy;
 end;
 
 // insane
@@ -125,14 +139,17 @@ end;
 
 procedure TDebugVarForm.SetVars(list: TPropertyItems);
 var
-  cmplist: TList;
   i: integer;
   oldxy: TPoint;
 
 begin
   // save state (expanded)
   // save data for compare
-  cmplist := TList.Create;
+  for i:=0 to cmplist.Count-1 do
+  begin
+    Dispose(cmplist[i]);
+  end;
+  cmplist.Clear;
   self.GenerateCompareData(cmplist, self.VirtualStringTree1.RootNode);
 
   oldxy := self.VirtualStringTree1.OffsetXY;
@@ -144,10 +161,6 @@ begin
 
   self.VirtualStringTree1.EndUpdate;
   self.VirtualStringTree1.SortTree(self.VirtualStringTree1.Header.SortColumn, self.VirtualStringTree1.Header.SortDirection, False);
-  for i:=0 to cmplist.Count-1 do
-  begin
-    Dispose(cmplist[i]);
-  end;
   self.VirtualStringTree1.OffsetXY := oldxy;
 end;
 
@@ -184,7 +197,8 @@ begin
     Item^.data := list[i].data;
     Item^.children := nil;
 
-    if (Item^.haschildren) then self.VirtualStringTree1.HasChildren[Node] := true;
+    if ((Item^.haschildren) and ((list[i].children = nil) or (Length(list[i].children^)=0))) then
+      self.VirtualStringTree1.HasChildren[Node] := true;
 
     ItemEx^.changed := false;
     // get compare data
@@ -330,14 +344,12 @@ procedure TDebugVarForm.VirtualStringTree1InitChildren(
 var
   Item: PPropertyItem;
   list: TPropertyItems;
-  cmplist: TList;
 begin
   Item := self.VirtualStringTree1.GetNodeData(node);
   ChildCount := 0;
   TNppDockingForm1(self.Owner).sock.GetPropertyAsync(Item^.fullname, list);
   if (list[0].datatype <> 'Error') then // there should be more correct error handling
   begin
-    cmplist := TList.Create;
     self.VirtualStringTree1.BeginUpdate;
     SubSetVars(Node, list[0].children^, cmplist);
     self.VirtualStringTree1.EndUpdate;

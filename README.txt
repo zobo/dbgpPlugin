@@ -19,7 +19,7 @@ interface and ended up writing this plugin in Delphi.
 
 VERSION
 
-Version 0.12. I'm declaring this version a beta, though I still might add a
+Version 0.13. I'm declaring this version a beta, though I still might add a
 feature or two.
 
 NOTE
@@ -151,6 +151,9 @@ Also new as of 0.6 are "Start with closed socket" and two DBGP features
 the debugging window, try to enable the first option.
 New in 0.7 is the "Break at fist line when debugging starts". If you uncheck this,
 execution will only stop at the first breakpoint.
+In 0.13 added on-demand property loading. So if you ser max_depth to 1, each expand
+in any property tree will fetch the next level from the engine. You may also set
+max_depth to more than 1.
 
 Debugger
 When the debugger is started a dialog is docked at the bottom part of N++. It can
