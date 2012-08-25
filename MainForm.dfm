@@ -1,11 +1,12 @@
 object NppDockingForm1: TNppDockingForm1
   Left = 313
   Top = 573
-  Width = 905
-  Height = 210
+  AutoScroll = False
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSizeToolWin
   Caption = 'DBGp'
+  ClientHeight = 176
+  ClientWidth = 897
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

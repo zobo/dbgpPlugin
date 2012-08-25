@@ -1,11 +1,12 @@
 object DebugInspectorForm1: TDebugInspectorForm1
   Left = 192
   Top = 110
-  Width = 400
-  Height = 262
+  AutoScroll = False
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSizeToolWin
   Caption = 'Inspector'
+  ClientHeight = 228
+  ClientWidth = 392
   Color = clBtnFace
   DragKind = dkDock
   DragMode = dmAutomatic

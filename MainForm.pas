@@ -141,6 +141,44 @@ begin
   inherited;
 end;
 
+{from JVCL SVN}
+function ManualTabDock2(DockSite: TWinControl; Form1, Form2: TForm): TJvDockTabHostForm;
+var
+  TabHost: TJvDockTabHostForm;
+  DockClient1, DockCLient2: TJvDockClient;
+  ScreenPos: TRect;
+begin
+  DockClient1 := FindDockClient(Form1);
+  Form1.Hide;
+
+  Assert(Assigned(DockClient1));
+
+  if DockClient1.DockState = JvDockState_Docking then
+  begin
+	ScreenPos := Application.MainForm.ClientRect; // Just making it float temporarily.
+	Form1.ManualFloat(ScreenPos); // This screws up on Delphi 2010.
+  end;
+
+  DockClient2 := FindDockClient(Form2);
+  Assert(Assigned(DockClient2));
+  Form2.Hide;
+
+  if DockClient2.DockState = JvDockState_Docking then
+  begin
+	ScreenPos := Application.MainForm.ClientRect; // Just making it float temporarily.
+	Form2.ManualFloat(ScreenPos);
+  end;
+
+  TabHost := DockClient1.CreateTabHostAndDockControl(Form1, Form2);
+
+  TabHost.ManualDock(DockSite,nil,alClient);
+
+  ShowDockForm(Form1);
+  ShowDockForm(Form2);
+  Result := TabHost;
+end;
+
+
 procedure TNppDockingForm1.FormCreate(Sender: TObject);
 var
   d: TJvDockTabHostForm;
@@ -149,7 +187,7 @@ begin
   self.Open(dctLocalContect, false);
   self.Open(dctGlobalContext, false);
 
-  d := ManualTabDock(self.JvDockServer1.BottomDockPanel, self.ContextLocalForm1, self.ContextGlobalForm1);
+  d := ManualTabDock2(self.JvDockServer1.BottomDockPanel, self.ContextLocalForm1, self.ContextGlobalForm1);
 
   self.DebugRawForm1 := TDebugRawForm1.Create(self);
 
@@ -161,7 +199,7 @@ begin
   //self.DebugBreakpointsForm1.ManualDock(self.JvDockServer1.BottomDockPanel);
   //self.JvDockServer1.BottomDockPanel.ShowDockPanel(true, self.DebugBreakpointsForm1);
 
-  ManualTabDock(self.JvDockServer1.BottomDockPanel, self.DebugStackForm1, self.DebugBreakpointsForm1);
+  ManualTabDock2(self.JvDockServer1.BottomDockPanel, self.DebugStackForm1, self.DebugBreakpointsForm1);
 
   self.Open(dctWatches,false);
   ManualTabDockAddPage(d, self.DebugWatchForm);

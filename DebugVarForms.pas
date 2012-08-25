@@ -347,8 +347,9 @@ var
 begin
   Item := self.VirtualStringTree1.GetNodeData(node);
   ChildCount := 0;
+  if TNppDockingForm1(self.Owner).sock.state <> DbgpWinSocket.dsBreak then exit;
   TNppDockingForm1(self.Owner).sock.GetPropertyAsync(Item^.fullname, list);
-  if (list[0].datatype <> 'Error') then // there should be more correct error handling
+  if ((Length(list)>0) and (list[0].datatype <> 'Error')) then // there should be more correct error handling
   begin
     self.VirtualStringTree1.BeginUpdate;
     SubSetVars(Node, list[0].children^, cmplist);

@@ -1,10 +1,11 @@
 object DebugStackForm1: TDebugStackForm1
   Left = 776
   Top = 112
-  Width = 264
-  Height = 206
+  AutoScroll = False
   BorderStyle = bsSizeToolWin
   Caption = 'Stack'
+  ClientHeight = 172
+  ClientWidth = 256
   Color = clBtnFace
   DockSite = True
   DragKind = dkDock

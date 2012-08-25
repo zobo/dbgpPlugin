@@ -1,12 +1,13 @@
 object DebugEvalForm1: TDebugEvalForm1
   Left = 339
   Top = 111
-  Width = 341
-  Height = 100
   ActiveControl = ComboBox1
+  AutoScroll = False
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSizeToolWin
   Caption = 'Eval'
+  ClientHeight = 66
+  ClientWidth = 333
   Color = clBtnFace
   Constraints.MaxHeight = 100
   Constraints.MinHeight = 100

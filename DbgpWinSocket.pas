@@ -754,7 +754,7 @@ end;
 
 procedure TDbgpWinSocket.ProcessResponse_source;
 var
-  ret: String;
+  fn, ret: String;
   f: TextFile;
 
 function phpunescape(s:string):string;
@@ -786,6 +786,27 @@ begin
   Result := r;
 end;
 
+function source_notchanged(filename:String; data:String):Boolean;
+var
+  f: File;
+  a: Array[1..1024] of char;
+  nr: Integer;
+  tmp, old: String;
+begin
+  Result := false;
+  if not FileExists(filename) then exit;
+  AssignFile(f, filename);
+  FileMode := fmOpenRead;
+  Reset(f, 1);
+  repeat
+    BlockRead(f, a, 1024, nr);
+    SetString(tmp, PChar(@a), nr);
+    old := old + tmp;
+  until nr=0;
+  CloseFile(f);
+  if old = data then Result := true;
+end;
+
 begin
 {
 <?xml version="1.0" encoding="iso-8859-1"?>
@@ -809,14 +830,16 @@ command]]></message></error></response>}
 
   if (self.last_source_request<>'') then
   begin
-    FileSetReadOnly(self.MapSourceToLocal(self.last_source_request), false);
-    AssignFile(f, self.MapSourceToLocal(self.last_source_request));
-    Rewrite(f);
     if (LeftStr(self.last_source_request, 5)='dbgp:') then
       ret := phpunescape(ret);
-    WriteLn(f, ret);
+    fn := self.MapSourceToLocal(self.last_source_request);
+    if source_notchanged(fn, ret) then exit;
+    FileSetReadOnly(fn, false);
+    AssignFile(f, fn);
+    Rewrite(f);
+    System.Write(f, ret);
     CloseFile(f);
-    FileSetReadOnly(self.MapSourceToLocal(self.last_source_request), true);
+    FileSetReadOnly(fn, true);
     self.last_source_request := '';
   end;
 end;

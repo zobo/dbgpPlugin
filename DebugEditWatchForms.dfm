@@ -1,10 +1,12 @@
 inherited DebugEditWatchForm: TDebugEditWatchForm
   Left = 248
   Top = 143
-  Height = 100
+  AutoScroll = False
   Caption = 'Add watch'
+  ClientHeight = 66
   Constraints.MaxHeight = 100
   Constraints.MinHeight = 100
+  OldCreateOrder = True
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel

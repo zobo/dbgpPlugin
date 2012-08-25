@@ -1,11 +1,12 @@
 object DebugRawForm1: TDebugRawForm1
   Left = 308
   Top = 114
-  Width = 315
-  Height = 235
+  AutoScroll = False
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSizeToolWin
   Caption = 'Raw DBGP'
+  ClientHeight = 201
+  ClientWidth = 307
   Color = clBtnFace
   DockSite = True
   DragKind = dkDock
